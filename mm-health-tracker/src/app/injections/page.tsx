@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { dailyEntryStorage, compoundStorage, injectionTargetStorage, timezoneStorage } from '@/lib/storage';
+import { dailyEntryStorage, compoundStorage, injectionTargetStorage } from '@/lib/storage';
 import { InjectionEntry } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { formatDate, formatTime, formatDateForDisplay } from '@/lib/dateUtils';
@@ -16,13 +16,13 @@ import {
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 
-type TimeRange = '3' | '7' | '30' | '60' | '90' | 'all';
+type TimeRange = '60' | '90' | 'all';
 type CompoundFilter = 'all' | 'Ipamorellin' | 'Retatrutide' | 'Testosterone' | 'custom';
 
 export default function InjectionsPage() {
   const [allInjections, setAllInjections] = useState<InjectionEntry[]>([]);
   const [filteredInjections, setFilteredInjections] = useState<InjectionEntry[]>([]);
-  const [timeRange, setTimeRange] = useState<TimeRange>('7');
+  const [timeRange, setTimeRange] = useState<TimeRange>('60');
   const [compoundFilter, setCompoundFilter] = useState<CompoundFilter>('all');
   const [compounds, setCompounds] = useState<string[]>([]);
   const [injectionInput, setInjectionInput] = useState({
@@ -30,7 +30,7 @@ export default function InjectionsPage() {
     dosage: '',
     unit: 'mg',
     notes: '',
-    date: timezoneStorage.getCurrentDate(),
+    date: new Date().toISOString().split('T')[0],
     time: '12:00'
   });
   const units = ['mg', 'ml', 'iu', 'mcg'];
@@ -127,7 +127,7 @@ export default function InjectionsPage() {
       dosage: '',
       unit: 'mg',
       notes: '',
-      date: timezoneStorage.getCurrentDate(),
+      date: new Date().toISOString().split('T')[0],
       time: '12:00'
     });
     loadAllInjections();
@@ -302,6 +302,110 @@ export default function InjectionsPage() {
         </div>
       </div>
 
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-4 mb-6">
+        <div className="flex items-center gap-2">
+          <FunnelIcon className="w-4 h-4 text-mm-gray" />
+          <span className="text-sm text-mm-gray">Filter by:</span>
+        </div>
+        
+        {/* Time Range Filter */}
+        <select 
+          value={timeRange}
+          onChange={(e) => setTimeRange(e.target.value as TimeRange)}
+          className="input-mm py-2 px-3 text-sm"
+        >
+          <option value="60">60 Days</option>
+          <option value="90">90 Days</option>
+          <option value="all">All Time</option>
+        </select>
+
+        {/* Compound Filter */}
+        <select 
+          value={compoundFilter}
+          onChange={(e) => setCompoundFilter(e.target.value as CompoundFilter)}
+          className="input-mm py-2 px-3 text-sm"
+        >
+          <option value="all">All Compounds</option>
+          {compounds.map(compound => (
+            <option key={compound} value={compound}>{compound}</option>
+          ))}
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+
+      {/* Injection History Table */}
+      <div className="card-mm mb-8">
+        <div className="p-6 border-b border-mm-gray/20">
+          <h3 className="text-lg font-heading">Injection History</h3>
+          <p className="text-sm text-mm-gray mt-1">
+            {filteredInjections.length} injection{filteredInjections.length !== 1 ? 's' : ''} 
+            {timeRange !== 'all' && ` in the last ${timeRange} days`}
+          </p>
+        </div>
+
+        {filteredInjections.length === 0 ? (
+          <div className="p-8 text-center">
+            <BeakerIcon className="w-12 h-12 text-mm-gray/50 mx-auto mb-4" />
+            <p className="text-mm-gray">No injections found</p>
+            <p className="text-sm text-mm-gray/70 mt-1">
+              {timeRange !== 'all' ? 'Try expanding the time range or' : ''} Add your first injection above
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-mm-dark2/50">
+                <tr>
+                  <th className="text-left p-4 text-sm font-semibold text-mm-gray">Date</th>
+                  <th className="text-left p-4 text-sm font-semibold text-mm-gray">Compound</th>
+                  <th className="text-left p-4 text-sm font-semibold text-mm-gray">Dosage</th>
+                  <th className="text-left p-4 text-sm font-semibold text-mm-gray">Notes</th>
+                  <th className="text-left p-4 text-sm font-semibold text-mm-gray">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-mm-gray/20">
+                {filteredInjections.map((injection) => (
+                  <tr key={injection.id} className="hover:bg-mm-dark2/30 transition-colors">
+                    <td className="p-4">
+                      <div className="text-sm">
+                        <div className="font-medium">
+                          {formatDate(injection.timestamp)}
+                        </div>
+                        <div className="text-mm-gray text-xs">
+                          {formatTime(injection.timestamp)}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <span className="font-medium">{injection.compound}</span>
+                    </td>
+                    <td className="p-4">
+                      <span className="text-mm-blue font-medium">
+                        {injection.dosage} {injection.unit}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <span className="text-sm text-mm-gray">
+                        {injection.notes || '-'}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <button
+                        onClick={() => removeInjection(injection.id)}
+                        className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
+                        title="Delete injection"
+                      >
+                        <XMarkIcon className="w-4 h-4 text-red-500" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {/* Weekly Dosage Analysis with Targets */}
       {Object.keys(frequencyAnalysis).length > 0 && (
@@ -422,114 +526,6 @@ export default function InjectionsPage() {
           </div>
         </div>
       )}
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-4 mb-6">
-        <div className="flex items-center gap-2">
-          <FunnelIcon className="w-4 h-4 text-mm-gray" />
-          <span className="text-sm text-mm-gray">Filter by:</span>
-        </div>
-
-        {/* Time Range Filter */}
-        <select
-          value={timeRange}
-          onChange={(e) => setTimeRange(e.target.value as TimeRange)}
-          className="input-mm py-2 px-3 text-sm"
-        >
-          <option value="3">3 Days</option>
-          <option value="7">7 Days</option>
-          <option value="30">30 Days</option>
-          <option value="60">60 Days</option>
-          <option value="90">90 Days</option>
-          <option value="all">All Time</option>
-        </select>
-
-        {/* Compound Filter */}
-        <select
-          value={compoundFilter}
-          onChange={(e) => setCompoundFilter(e.target.value as CompoundFilter)}
-          className="input-mm py-2 px-3 text-sm"
-        >
-          <option value="all">All Compounds</option>
-          {compounds.map(compound => (
-            <option key={compound} value={compound}>{compound}</option>
-          ))}
-          <option value="custom">Custom</option>
-        </select>
-      </div>
-
-      {/* Injection History Table */}
-      <div className="card-mm mb-8">
-        <div className="p-6 border-b border-mm-gray/20">
-          <h3 className="text-lg font-heading">Injection History</h3>
-          <p className="text-sm text-mm-gray mt-1">
-            {filteredInjections.length} injection{filteredInjections.length !== 1 ? 's' : ''}
-            {timeRange !== 'all' && ` in the last ${timeRange} days`}
-          </p>
-        </div>
-
-        {filteredInjections.length === 0 ? (
-          <div className="p-8 text-center">
-            <BeakerIcon className="w-12 h-12 text-mm-gray/50 mx-auto mb-4" />
-            <p className="text-mm-gray">No injections found</p>
-            <p className="text-sm text-mm-gray/70 mt-1">
-              {timeRange !== 'all' ? 'Try expanding the time range or' : ''} Add your first injection above
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-mm-dark2/50">
-                <tr>
-                  <th className="text-left p-4 text-sm font-semibold text-mm-gray">Date</th>
-                  <th className="text-left p-4 text-sm font-semibold text-mm-gray">Compound</th>
-                  <th className="text-left p-4 text-sm font-semibold text-mm-gray">Dosage</th>
-                  <th className="text-left p-4 text-sm font-semibold text-mm-gray">Notes</th>
-                  <th className="text-left p-4 text-sm font-semibold text-mm-gray">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-mm-gray/20">
-                {filteredInjections.map((injection) => (
-                  <tr key={injection.id} className="hover:bg-mm-dark2/30 transition-colors">
-                    <td className="p-4">
-                      <div className="text-sm">
-                        <div className="font-medium">
-                          {formatDate(injection.timestamp)}
-                        </div>
-                        <div className="text-mm-gray text-xs">
-                          {formatTime(injection.timestamp)}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <span className="font-medium">{injection.compound}</span>
-                    </td>
-                    <td className="p-4">
-                      <span className="text-mm-blue font-medium">
-                        {injection.dosage} {injection.unit}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <span className="text-sm text-mm-gray">
-                        {injection.notes || '-'}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <button
-                        onClick={() => removeInjection(injection.id)}
-                        className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
-                        title="Delete injection"
-                      >
-                        <XMarkIcon className="w-4 h-4 text-red-500" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">

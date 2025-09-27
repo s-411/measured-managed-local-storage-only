@@ -171,9 +171,7 @@ h6 { font-size: 0.875rem; }
 /* Form Inputs */
 .input-mm {
   width: 100%;
-  padding-top: 0.75rem;
-  padding-bottom: 0.75rem;
-  padding-right: 0.75rem;
+  padding: 0.75rem;
   border-radius: var(--radius-input);
   border: 1px solid color-mix(in srgb, var(--color-mm-gray) 30%, transparent);
   background-color: color-mix(in srgb, var(--color-mm-dark) 50%, transparent);
@@ -181,11 +179,6 @@ h6 { font-size: 0.875rem; }
   outline: none;
   transition: all var(--transition-fast);
   font-size: 1rem;
-}
-
-/* Default padding-left for inputs without icons */
-.input-mm:not(.pl-10):not(.pl-3) {
-  padding-left: 0.75rem;
 }
 
 .input-mm::placeholder {
@@ -337,51 +330,4 @@ h6 { font-size: 0.875rem; }
 
 .mobile-nav-item:hover {
   color: var(--color-mm-white);
-}
-
-/* Header Navigation */
-.header-nav-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: var(--radius-input);
-  color: var(--color-mm-gray);
-  transition: all var(--transition-fast);
-  cursor: pointer;
-  text-decoration: none;
-  font-size: 0.875rem;
-}
-
-.header-nav-item:hover {
-  color: var(--color-mm-white);
-  background-color: color-mix(in srgb, var(--color-mm-dark2) 50%, transparent);
-}
-
-.header-nav-item.active {
-  background-color: var(--color-mm-blue);
-  color: var(--color-mm-dark);
-  font-weight: 500;
-}
-
-.header-nav-item-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem;
-  border-radius: var(--radius-input);
-  color: var(--color-mm-gray);
-  transition: all var(--transition-fast);
-  cursor: pointer;
-  text-decoration: none;
-}
-
-.header-nav-item-icon:hover {
-  color: var(--color-mm-white);
-  background-color: color-mix(in srgb, var(--color-mm-dark2) 50%, transparent);
-}
-
-.header-nav-item-icon.active {
-  background-color: var(--color-mm-blue);
-  color: var(--color-mm-dark);
 }

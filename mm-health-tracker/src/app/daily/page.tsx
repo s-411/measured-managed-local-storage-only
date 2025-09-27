@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { profileStorage, dailyEntryStorage, generateId, weeklyEntryStorage, getWeekStartDate, getDayOfWeek, timezoneStorage, winnersBibleStorage, nirvanaSessionStorage } from '@/lib/storage';
+import { profileStorage, dailyEntryStorage, generateId, weeklyEntryStorage, getWeekStartDate, getDayOfWeek } from '@/lib/storage';
 import { DailyEntry, UserProfile, MITEntry, WeeklyEntry, WeeklyObjective } from '@/types';
 import { formatDateLong } from '@/lib/dateUtils';
-import {
-  CalendarDaysIcon,
-  ChevronLeftIcon,
+import { 
+  CalendarDaysIcon, 
+  ChevronLeftIcon, 
   ChevronRightIcon,
   CheckCircleIcon,
   ScaleIcon,
@@ -17,17 +17,14 @@ import {
   ClipboardDocumentListIcon,
   TrashIcon,
   XMarkIcon,
-  AcademicCapIcon,
-  PhotoIcon,
-  SunIcon,
-  MoonIcon
+  AcademicCapIcon
 } from '@heroicons/react/24/outline';
 import {
   CheckCircleIcon as CheckCircleIconSolid
 } from '@heroicons/react/24/solid';
 
 export default function DailyTrackerPage() {
-  const [currentDate, setCurrentDate] = useState(timezoneStorage.getCurrentDate());
+  const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
   const [dailyEntry, setDailyEntry] = useState<DailyEntry | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [weightInput, setWeightInput] = useState('');
@@ -172,7 +169,7 @@ export default function DailyTrackerPage() {
       setDailyEntry(updatedEntry);
       
       // Also update the profile weight if this is today's weight
-      const todayDate = timezoneStorage.getCurrentDate();
+      const todayDate = new Date().toISOString().split('T')[0];
       if (currentDate === todayDate && profile) {
         const updatedProfile = profileStorage.update({ weight });
         setProfile(updatedProfile); // Update local profile state
@@ -185,11 +182,6 @@ export default function DailyTrackerPage() {
   const toggleDeepWork = () => {
     const updatedEntry = dailyEntryStorage.toggleDeepWork(currentDate);
     setDailyEntry(updatedEntry);
-  };
-
-  const handleWinnersBibleView = () => {
-    // Navigate to Winners Bible page without marking anything complete
-    window.location.href = '/winners-bible';
   };
 
   const addMIT = () => {
@@ -273,7 +265,7 @@ export default function DailyTrackerPage() {
     setShowReviewForm(false); // Close the form after saving
   };
 
-  const isToday = timezoneStorage.isToday(currentDate);
+  const isToday = currentDate === new Date().toISOString().split('T')[0];
   
   const metrics = useMemo(() => {
     // Default BMR if no profile
@@ -290,10 +282,7 @@ export default function DailyTrackerPage() {
           exercise: false,
           weight: false,
           deepWork: false,
-          mits: false,
-          winnersBible: false,
-          injections: false,
-          nirvana: false
+          mits: false
         }
       };
     }
@@ -315,22 +304,12 @@ export default function DailyTrackerPage() {
     const tomorrow = new Date(currentDate);
     tomorrow.setDate(tomorrow.getDate() + 1);
     
-    // Check if injections were logged for current date (from dailyEntry)
-    const hasInjections = dailyEntry.injections.length > 0;
-
-    // Check if nirvana sessions were logged for current date
-    const nirvanaEntry = nirvanaSessionStorage.getByDate(currentDate);
-    const hasNirvanaSessions = nirvanaEntry && nirvanaEntry.sessions.length > 0;
-
     const completionStatus = {
       calories: dailyEntry.calories.length > 0,
       exercise: dailyEntry.exercises.length > 0,
       weight: dailyEntry.weight !== undefined,
       deepWork: dailyEntry.deepWorkCompleted || false,
-      mits: tomorrowMITs.length > 0,
-      winnersBible: (dailyEntry.winnersBibleMorning || false) || (dailyEntry.winnersBibleNight || false),
-      injections: hasInjections,
-      nirvana: hasNirvanaSessions
+      mits: tomorrowMITs.length > 0
     };
 
     return {
@@ -357,7 +336,7 @@ export default function DailyTrackerPage() {
   const hasTargets = targets.calories > 0 || targets.carbs > 0 || targets.protein > 0 || targets.fat > 0;
 
   return (
-    <div className="p-6 md:p-8 w-[90%] mx-auto">
+    <div className="p-6 md:p-8 max-w-6xl mx-auto">
       {/* Header with Date Navigation */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -394,11 +373,9 @@ export default function DailyTrackerPage() {
         </div>
       </div>
 
-      {/* Two-column layout for Weekly Planning/Review + Today's MITs */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Left Column: Weekly Planning (Monday) or Review (Friday) */}
-        {isMonday && (
-          <div className="card-mm p-6 bg-gradient-to-br from-green-500/20 to-green-500/10 border border-green-500/30">
+      {/* Monday: Weekly Objectives Planning - Top Priority */}
+      {isMonday && (
+        <div className="card-mm p-6 mb-8 bg-gradient-to-br from-green-500/20 to-green-500/10 border border-green-500/30">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
               <AcademicCapIcon className="w-6 h-6 text-green-500" />
@@ -496,12 +473,13 @@ export default function DailyTrackerPage() {
               </div>
             </div>
           )}
-          </div>
-        )}
+        </div>
+      )}
 
-        {/* Friday Review in Left Column */}
-        {isFriday && weeklyEntry?.objectives && weeklyEntry.objectives.length > 0 && (
-          <div className="card-mm p-6 bg-gradient-to-br from-green-500/20 to-green-500/10 border border-green-500/30">
+
+      {/* Friday: Weekly Review */}
+      {isFriday && weeklyEntry?.objectives && weeklyEntry.objectives.length > 0 && (
+        <div className="card-mm p-6 mb-8 bg-gradient-to-br from-green-500/20 to-green-500/10 border border-green-500/30">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
               <AcademicCapIcon className="w-6 h-6 text-green-500" />
@@ -586,13 +564,12 @@ export default function DailyTrackerPage() {
               </div>
             )}
           </div>
-          </div>
-        )}
+        </div>
+      )}
 
-        {/* Right Column: Today's MITs - positioned right on Mon/Fri, left on other days */}
-        <div className={`${(isMonday || isFriday) ? 'lg:order-2' : 'lg:order-1'}`}>
-          {todayMITs.length > 0 && (
-            <div className="card-mm p-6 bg-gradient-to-br from-yellow-500/20 to-yellow-500/10 border border-yellow-500/30">
+      {/* Today's MITs Display - Prominently at the top */}
+      {todayMITs.length > 0 && (
+        <div className="card-mm p-6 mb-8 bg-gradient-to-br from-yellow-500/20 to-yellow-500/10 border border-yellow-500/30">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
               <ClipboardDocumentListIcon className="w-6 h-6 text-yellow-500" />
@@ -608,8 +585,8 @@ export default function DailyTrackerPage() {
                 <button
                   onClick={() => toggleTodayMIT(mit.id)}
                   className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                    mit.completed
-                      ? 'bg-yellow-500 border-yellow-500' // Yellow when completed
+                    mit.completed 
+                      ? 'bg-green-500 border-green-500' 
                       : 'border-yellow-500 hover:bg-yellow-500/20'
                   }`}
                 >
@@ -623,13 +600,11 @@ export default function DailyTrackerPage() {
               </div>
             ))}
           </div>
-            <div className="mt-3 text-sm text-mm-gray">
-              {todayMITs.filter(m => m.completed).length} of {todayMITs.length} completed
-            </div>
-            </div>
-          )}
+          <div className="mt-3 text-sm text-mm-gray">
+            {todayMITs.filter(m => m.completed).length} of {todayMITs.length} completed
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Daily Completion Overview - Combined Card */}
       <div className="card-mm p-6 mb-8">
@@ -677,7 +652,7 @@ export default function DailyTrackerPage() {
               </div>
               <div className="flex justify-between text-sm border-t border-mm-gray/20 pt-3">
                 <span className="text-mm-gray">Calorie balance</span>
-                <span className={`font-semibold ${metrics.calorieBalance >= 0 ? 'text-mm-white' : 'text-red-500'}`}>
+                <span className={`font-semibold ${metrics.calorieBalance >= 0 ? 'text-mm-blue' : 'text-red-500'}`}>
                   {Math.abs(metrics.calorieBalance)} {metrics.calorieBalance >= 0 ? 'deficit' : 'surplus'}
                 </span>
               </div>
@@ -686,9 +661,14 @@ export default function DailyTrackerPage() {
 
           {/* Macros Progress Column */}
           <div>
-            <div className="mb-4">
-              <h3 className="text-lg font-heading text-mm-white">Macros Progress</h3>
-              <p className="text-sm text-mm-gray">Today vs targets</p>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
+                <FireIcon className="w-5 h-5 text-orange-500" />
+              </div>
+              <div>
+                <h3 className="text-lg font-heading text-mm-white">Macros Progress</h3>
+                <p className="text-sm text-mm-gray">Today vs targets</p>
+              </div>
             </div>
             
             {hasTargets ? (
@@ -716,7 +696,7 @@ export default function DailyTrackerPage() {
                     <tr>
                       <td className="py-1 text-mm-white">Carbs</td>
                       <td className={`py-1 text-right font-semibold ${
-                        metrics.macros.carbs <= targets.carbs ? 'text-mm-white' : 'text-red-500'
+                        metrics.macros.carbs <= targets.carbs ? 'text-green-500' : 'text-red-500'
                       }`}>
                         {Math.round(metrics.macros.carbs)}g
                       </td>
@@ -727,7 +707,7 @@ export default function DailyTrackerPage() {
                     <tr>
                       <td className="py-1 text-mm-white">Protein</td>
                       <td className={`py-1 text-right font-semibold ${
-                        metrics.macros.protein <= targets.protein ? 'text-mm-white' : 'text-red-500'
+                        metrics.macros.protein <= targets.protein ? 'text-green-500' : 'text-red-500'
                       }`}>
                         {Math.round(metrics.macros.protein)}g
                       </td>
@@ -738,7 +718,7 @@ export default function DailyTrackerPage() {
                     <tr>
                       <td className="py-1 text-mm-white">Fat</td>
                       <td className={`py-1 text-right font-semibold ${
-                        metrics.macros.fat <= targets.fat ? 'text-mm-white' : 'text-red-500'
+                        metrics.macros.fat <= targets.fat ? 'text-green-500' : 'text-red-500'
                       }`}>
                         {Math.round(metrics.macros.fat)}g
                       </td>
@@ -757,14 +737,19 @@ export default function DailyTrackerPage() {
         </div>
       </div>
 
-      {/* Daily Metrics Grid - Now with 8 metrics in 4x2 layout */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+      {/* Daily Metrics Grid - Now with 5 metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 mb-8">
         {/* Weight Tracking */}
         <div className="card-mm p-3">
           <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-heading text-mm-white">Weight</h3>
-              <p className="text-xs text-mm-gray">Daily weigh-in</p>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                <ScaleIcon className="w-5 h-5 text-blue-500" />
+              </div>
+              <div>
+                <h3 className="font-heading text-mm-white">Weight</h3>
+                <p className="text-xs text-mm-gray">Daily weigh-in</p>
+              </div>
             </div>
             {metrics.completionStatus.weight ? (
               <CheckCircleIconSolid className="w-6 h-6 text-green-500" />
@@ -829,9 +814,14 @@ export default function DailyTrackerPage() {
         {/* Deep Work */}
         <div className="card-mm p-3">
           <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-heading text-mm-white">Deep Work</h3>
-              <p className="text-xs text-mm-gray">Focus session</p>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
+                <BriefcaseIcon className="w-5 h-5 text-purple-500" />
+              </div>
+              <div>
+                <h3 className="font-heading text-mm-white">Deep Work</h3>
+                <p className="text-xs text-mm-gray">Focus session</p>
+              </div>
             </div>
             {metrics.completionStatus.deepWork ? (
               <CheckCircleIconSolid className="w-6 h-6 text-green-500" />
@@ -850,7 +840,7 @@ export default function DailyTrackerPage() {
           </button>
           
           <div className="text-center">
-            <div className="text-2xl font-heading text-mm-white">
+            <div className="text-2xl font-heading text-purple-500">
               {metrics.completionStatus.deepWork ? '✓' : '○'}
             </div>
           </div>
@@ -859,9 +849,14 @@ export default function DailyTrackerPage() {
         {/* Food */}
         <div className="card-mm p-3">
           <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-heading text-mm-white">Food</h3>
-              <p className="text-xs text-mm-gray">Calorie tracking</p>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
+                <FireIcon className="w-5 h-5 text-orange-500" />
+              </div>
+              <div>
+                <h3 className="font-heading text-mm-white">Food</h3>
+                <p className="text-xs text-mm-gray">Calorie tracking</p>
+              </div>
             </div>
             {metrics.completionStatus.calories ? (
               <CheckCircleIconSolid className="w-6 h-6 text-green-500" />
@@ -884,9 +879,14 @@ export default function DailyTrackerPage() {
         {/* Exercise */}
         <div className="card-mm p-3">
           <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-heading text-mm-white">Exercise</h3>
-              <p className="text-xs text-mm-gray">Workout tracking</p>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                <BoltIcon className="w-5 h-5 text-green-500" />
+              </div>
+              <div>
+                <h3 className="font-heading text-mm-white">Exercise</h3>
+                <p className="text-xs text-mm-gray">Workout tracking</p>
+              </div>
             </div>
             {metrics.completionStatus.exercise ? (
               <CheckCircleIconSolid className="w-6 h-6 text-green-500" />
@@ -909,9 +909,14 @@ export default function DailyTrackerPage() {
         {/* MITs Planning */}
         <div className="card-mm p-3">
           <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-heading text-mm-white">MITs</h3>
-              <p className="text-xs text-mm-gray">Tomorrow&apos;s plan</p>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                <ClipboardDocumentListIcon className="w-5 h-5 text-yellow-500" />
+              </div>
+              <div>
+                <h3 className="font-heading text-mm-white">MITs</h3>
+                <p className="text-xs text-mm-gray">Tomorrow&apos;s plan</p>
+              </div>
             </div>
             {metrics.completionStatus.mits ? (
               <CheckCircleIconSolid className="w-6 h-6 text-green-500" />
@@ -934,152 +939,44 @@ export default function DailyTrackerPage() {
           </button>
           
           <div className="text-center">
-            <div className="text-2xl font-heading text-mm-white">
+            <div className="text-2xl font-heading text-yellow-500">
               {metrics.completionStatus.mits ? '✓' : tomorrowMITs.length || '○'}
-            </div>
-          </div>
-        </div>
-
-        {/* Winners Bible */}
-        <div className="card-mm p-3">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-heading text-mm-white">Winners Bible</h3>
-              <p className="text-xs text-mm-gray">Daily inspiration</p>
-            </div>
-            <div className="flex items-center gap-2">
-              {/* Morning indicator */}
-              <div className="flex items-center">
-                <SunIcon className="w-4 h-4 text-yellow-500 mr-1" />
-                {dailyEntry?.winnersBibleMorning ? (
-                  <CheckCircleIconSolid className="w-5 h-5 text-green-500" />
-                ) : (
-                  <CheckCircleIcon className="w-5 h-5 text-mm-gray/50" />
-                )}
-              </div>
-              {/* Evening indicator */}
-              <div className="flex items-center">
-                <MoonIcon className="w-4 h-4 text-blue-500 mr-1" />
-                {dailyEntry?.winnersBibleNight ? (
-                  <CheckCircleIconSolid className="w-5 h-5 text-green-500" />
-                ) : (
-                  <CheckCircleIcon className="w-5 h-5 text-mm-gray/50" />
-                )}
-              </div>
-            </div>
-          </div>
-
-          <button
-            onClick={handleWinnersBibleView}
-            className="btn-mm w-full py-2 text-sm mb-3"
-          >
-            View
-          </button>
-
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-3">
-              <div className="flex items-center">
-                <SunIcon className="w-5 h-5 text-yellow-500 mr-1" />
-                <span className="text-lg font-heading text-mm-white">
-                  {dailyEntry?.winnersBibleMorning ? '✓' : '○'}
-                </span>
-              </div>
-              <div className="flex items-center">
-                <MoonIcon className="w-5 h-5 text-blue-500 mr-1" />
-                <span className="text-lg font-heading text-mm-white">
-                  {dailyEntry?.winnersBibleNight ? '✓' : '○'}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Injections Tracking */}
-        <div className="card-mm p-3">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-heading text-mm-white">Injections</h3>
-              <p className="text-xs text-mm-gray">Daily compounds</p>
-            </div>
-            {metrics.completionStatus.injections ? (
-              <CheckCircleIconSolid className="w-6 h-6 text-green-500" />
-            ) : (
-              <CheckCircleIcon className="w-6 h-6 text-mm-gray/50" />
-            )}
-          </div>
-
-          <a href="/injections" className="btn-secondary w-full py-2 text-sm mb-3 block text-center">
-            Track Injections
-          </a>
-
-          <div className="text-center">
-            <div className="text-2xl font-heading text-mm-white">
-              {metrics.completionStatus.injections ? '✓' : '○'}
-            </div>
-          </div>
-        </div>
-
-        {/* Nirvana Sessions */}
-        <div className="card-mm p-3">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-heading text-mm-white">Nirvana</h3>
-              <p className="text-xs text-mm-gray">Training sessions</p>
-            </div>
-            {metrics.completionStatus.nirvana ? (
-              <CheckCircleIconSolid className="w-6 h-6 text-green-500" />
-            ) : (
-              <CheckCircleIcon className="w-6 h-6 text-mm-gray/50" />
-            )}
-          </div>
-
-          <a href="/nirvana" className="btn-secondary w-full py-2 text-sm mb-3 block text-center">
-            Track Sessions
-          </a>
-
-          <div className="text-center">
-            <div className="text-2xl font-heading text-mm-white">
-              {metrics.completionStatus.nirvana ? '✓' : '○'}
             </div>
           </div>
         </div>
       </div>
 
 
-      {/* Two-column layout for Weekly Objectives and Tomorrow's MITs */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Tuesday-Thursday: Display Weekly Objectives */}
-        {isTuesdayToThursday && weeklyEntry?.objectives && weeklyEntry.objectives.length > 0 ? (
-          <div className="card-mm p-4 bg-gradient-to-br from-green-500/20 to-green-500/10 border border-green-500/30">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
-                <AcademicCapIcon className="w-4 h-4 text-green-500" />
-              </div>
-              <h3 className="font-heading text-mm-white">This Week&apos;s Objectives</h3>
+      {/* Tuesday-Thursday: Display Weekly Objectives */}
+      {isTuesdayToThursday && weeklyEntry?.objectives && weeklyEntry.objectives.length > 0 && (
+        <div className="card-mm p-4 mb-8 bg-gradient-to-br from-green-500/20 to-green-500/10 border border-green-500/30">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
+              <AcademicCapIcon className="w-4 h-4 text-green-500" />
             </div>
-
-            <div className="grid gap-2 mb-3">
-              {weeklyEntry.objectives.map((objective, index) => (
-                <div key={objective.id} className="flex items-center gap-2 text-sm">
-                  <span className="w-4 h-4 rounded-full bg-green-500/20 text-green-500 text-xs flex items-center justify-center font-bold">
-                    {index + 1}
-                  </span>
-                  <span className="text-mm-white">{objective.objective}</span>
-                </div>
-              ))}
-            </div>
-
-            {weeklyEntry.whyImportant && (
-              <div className="bg-green-500/10 rounded p-3">
-                <p className="text-xs text-green-300 italic">{weeklyEntry.whyImportant}</p>
-              </div>
-            )}
+            <h3 className="font-heading text-mm-white">This Week&apos;s Objectives</h3>
           </div>
-        ) : (
-          <div></div>
-        )}
+          
+          <div className="grid gap-2 mb-3">
+            {weeklyEntry.objectives.map((objective, index) => (
+              <div key={objective.id} className="flex items-center gap-2 text-sm">
+                <span className="w-4 h-4 rounded-full bg-green-500/20 text-green-500 text-xs flex items-center justify-center font-bold">
+                  {index + 1}
+                </span>
+                <span className="text-mm-white">{objective.objective}</span>
+              </div>
+            ))}
+          </div>
+          
+          {weeklyEntry.whyImportant && (
+            <div className="bg-green-500/10 rounded p-3">
+              <p className="text-xs text-green-300 italic">{weeklyEntry.whyImportant}</p>
+            </div>
+          )}
+        </div>
+      )}
 
-        {/* Tomorrow's MIT Planning Card */}
+      {/* Tomorrow's MIT Planning Card */}
       <div data-mit-section className="card-mm p-6 bg-gradient-to-br from-yellow-500/20 to-yellow-500/10 border border-yellow-500/30">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -1115,12 +1012,12 @@ export default function DailyTrackerPage() {
                 onChange={(e) => setMitInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && addMIT()}
                 placeholder="Enter a most important task for tomorrow..."
-                className="flex-1 px-4 py-2 bg-mm-dark text-mm-white rounded-lg border border-yellow-500 focus:border-yellow-500 focus:shadow-[0_0_0_2px_rgba(245,158,11,0.2)] focus:outline-none transition-all"
+                className="input-mm flex-1"
                 autoFocus
               />
               <button
                 onClick={addMIT}
-                className="px-6 py-2 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold rounded-full transition-colors"
+                className="btn-mm px-6"
                 disabled={!mitInput.trim()}
               >
                 Add
@@ -1168,7 +1065,6 @@ export default function DailyTrackerPage() {
           <p className="text-sm text-yellow-300">
             💡 <strong>Tip:</strong> Plan 3-5 MITs each night. These should be your highest priority work tasks that move the needle forward.
           </p>
-        </div>
         </div>
       </div>
     </div>

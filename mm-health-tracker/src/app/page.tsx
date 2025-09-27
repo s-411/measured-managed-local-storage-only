@@ -1,37 +1,32 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth/AuthContext';
+import { profileStorage } from '@/lib/storage';
 
 export default function HomePage() {
-  const { user, loading } = useAuth();
   const router = useRouter();
+  const [redirectMessage, setRedirectMessage] = useState('Checking profile...');
 
   useEffect(() => {
-    if (!loading) {
-      if (user) {
-        // User is logged in, redirect to main app
-        router.push('/daily');
-      } else {
-        // User is not logged in, redirect to login
-        router.push('/auth/login');
-      }
+    // Check if profile is complete
+    const isProfileComplete = profileStorage.isComplete();
+    
+    if (isProfileComplete) {
+      setRedirectMessage('Redirecting to Daily Tracker...');
+      router.replace('/daily');
+    } else {
+      setRedirectMessage('Setting up your profile...');
+      // Add first-time user flag to URL so settings page can show welcome message
+      router.replace('/settings?firstTime=true');
     }
-  }, [user, loading, router]);
+  }, [router]);
 
-  // Show loading while determining auth state
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-mm-dark">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-mm-blue mx-auto mb-4"></div>
-          <p className="text-mm-gray">Loading MM Health...</p>
-        </div>
+  return (
+    <div className="p-6 flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <p className="text-mm-gray">{redirectMessage}</p>
       </div>
-    );
-  }
-
-  // This shouldn't be visible as we redirect immediately
-  return null;
+    </div>
+  );
 }

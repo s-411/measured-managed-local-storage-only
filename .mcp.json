@@ -5,6 +5,7 @@
       "args": [
         "-y",
         "@supabase/mcp-server-supabase",
+        "--read-only",
         "--project-ref=dmuyymdfpciuqjrarezw"
       ],
       "env": {

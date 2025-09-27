@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AppProvider } from '@/lib/context';
-import { AuthProvider } from '@/lib/auth/AuthContext';
-import { LayoutWrapper } from '@/components/LayoutWrapper';
-import { ErrorBoundary, DevelopmentErrorDisplay } from '@/components/ErrorBoundary';
+import { AppShell } from '@/components/Navigation';
 
 export const metadata: Metadata = {
   title: "MM Health Tracker",
@@ -23,16 +21,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="bg-mm-dark text-mm-white" suppressHydrationWarning>
-        <ErrorBoundary>
-          <AuthProvider>
-            <AppProvider>
-              <LayoutWrapper>
-                {children}
-              </LayoutWrapper>
-            </AppProvider>
-          </AuthProvider>
-          <DevelopmentErrorDisplay />
-        </ErrorBoundary>
+        <AppProvider>
+          <AppShell>
+            {children}
+          </AppShell>
+        </AppProvider>
       </body>
     </html>
   );

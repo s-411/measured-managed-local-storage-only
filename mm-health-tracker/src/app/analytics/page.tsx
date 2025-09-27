@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { profileStorage, dailyEntryStorage, calculations, nirvanaSessionStorage, bodyPartMappingStorage, sessionCorrelationStorage } from '@/lib/storage';
-import { UserProfile, NirvanaEntry, BodyPartUsage, CorrelationAnalysis } from '@/types';
+import { UserProfile, NirvanaSession, NirvanaEntry, BodyPartUsage, CorrelationAnalysis } from '@/types';
 import { formatDate } from '@/lib/dateUtils';
 import {
   LineChart,
@@ -64,7 +64,6 @@ export default function AnalyticsPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [calorieBalancePeriod, setCalorieBalancePeriod] = useState<7 | 30 | 90>(30);
-  const [weightTimePeriod, setWeightTimePeriod] = useState<7 | 30 | 60 | 90>(90);
   const [macroTargets, setMacroTargets] = useState({
     calories: '',
     carbs: '',
@@ -85,7 +84,7 @@ export default function AnalyticsPage() {
 
     loadAnalyticsData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [calorieBalancePeriod, weightTimePeriod]);
+  }, [calorieBalancePeriod]);
 
   const loadAnalyticsData = () => {
     const data: AnalyticsData = {
@@ -123,14 +122,13 @@ export default function AnalyticsPage() {
       fat: parseInt(macroTargets.fat) || 0
     };
 
-    // Weight data (based on selected time period, default to 90 days for comprehensive view)
-    const weightPeriod = weightTimePeriod || 90;
-    for (let i = 0; i < weightPeriod; i++) {
+    // Weight data (last 90 days for comprehensive view)
+    for (let i = 0; i < 90; i++) {
       const date = new Date(currentDate);
       date.setDate(date.getDate() - i);
       const dateString = date.toISOString().split('T')[0];
       const entry = dailyEntryStorage.getByDate(dateString);
-
+      
       if (entry?.weight) {
         data.weightData.unshift({
           date: dateString,
@@ -549,120 +547,32 @@ export default function AnalyticsPage() {
 
       {/* Weight Chart - Full Width Prominent Feature */}
       <div className="card-mm p-6 mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-              <ScaleIcon className="w-5 h-5 text-blue-500" />
-            </div>
-            <div>
-              <h2 className="text-xl font-heading text-mm-white">Weight Progress</h2>
-              <p className="text-sm text-mm-gray">Your weight journey over time</p>
-            </div>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+            <ScaleIcon className="w-5 h-5 text-blue-500" />
           </div>
-
-          <div className="flex gap-1">
-            {[7, 30, 60, 90].map((period) => (
-              <button
-                key={period}
-                onClick={() => setWeightTimePeriod(period as 7 | 30 | 60 | 90)}
-                className={`px-3 py-1 text-xs rounded transition-colors ${
-                  weightTimePeriod === period
-                    ? 'bg-mm-blue text-white'
-                    : 'bg-mm-dark2 text-mm-gray hover:bg-mm-gray/20'
-                }`}
-              >
-                {period}d
-              </button>
-            ))}
+          <div>
+            <h2 className="text-xl font-heading text-mm-white">Weight Progress</h2>
+            <p className="text-sm text-mm-gray">Your weight journey over time</p>
           </div>
         </div>
 
         {analyticsData.weightData.length > 0 ? (
           <div style={{ width: '100%', height: '400px' }}>
             <ResponsiveContainer>
-              <LineChart
-                data={analyticsData.weightData.map(item => ({
-                  ...item,
-                  timestamp: new Date(item.date + 'T12:00:00').getTime()
-                }))}
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="#2a2a2a"
-                  horizontalCoordinatesGenerator={(props) => {
-                    const { yAxis } = props;
-                    if (!yAxis) return [];
-
-                    const lines = [];
-                    // Add faint lines every 1kg from 75 to 90
-                    for (let i = 75; i <= 90; i++) {
-                      if (yAxis.scale) {
-                        lines.push(yAxis.scale(i));
-                      }
-                    }
-                    return lines;
-                  }}
-                />
-                {/* Additional fine grid lines for 1kg increments */}
-                <CartesianGrid
-                  strokeDasharray="1 1"
-                  stroke="#1a1a1a"
-                  strokeOpacity={0.3}
-                  verticalCoordinatesGenerator={() => []}
-                  horizontalCoordinatesGenerator={(props) => {
-                    const { yAxis } = props;
-                    if (!yAxis) return [];
-
-                    const lines = [];
-                    // Add very faint lines every 1kg (excluding 5kg marks which are handled by main grid)
-                    for (let i = 75; i <= 90; i++) {
-                      if (i % 5 !== 0 && yAxis.scale) {
-                        lines.push(yAxis.scale(i));
-                      }
-                    }
-                    return lines;
-                  }}
-                />
-                {/* Prominent reference lines at 80kg and 85kg */}
-                <CartesianGrid
-                  strokeDasharray="2 4"
-                  stroke="#00A1FE"
-                  strokeOpacity={0.6}
-                  verticalCoordinatesGenerator={() => []}
-                  horizontalCoordinatesGenerator={(props) => {
-                    const { yAxis } = props;
-                    if (!yAxis) return [];
-
-                    const lines: number[] = [];
-                    // Add prominent lines at 80kg and 85kg
-                    [80, 85].forEach(weight => {
-                      if (yAxis.scale) {
-                        lines.push(yAxis.scale(weight));
-                      }
-                    });
-                    return lines;
-                  }}
-                />
-                <XAxis
-                  dataKey="timestamp"
-                  type="number"
-                  scale="time"
-                  domain={['dataMin', 'dataMax']}
+              <LineChart data={analyticsData.weightData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" />
+                <XAxis 
+                  dataKey="label" 
                   stroke="#ababab"
                   fontSize={12}
-                  tickFormatter={(value) => {
-                    const date = new Date(value);
-                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                  }}
                 />
-                <YAxis
+                <YAxis 
                   stroke="#ababab"
                   fontSize={12}
-                  domain={[75, 90]}
-                  ticks={[75, 80, 85, 90]}
-                  tickFormatter={(value) => `${value}kg`}
+                  domain={['dataMin - 2', 'dataMax + 2']}
                 />
-                <Tooltip
+                <Tooltip 
                   contentStyle={{
                     backgroundColor: '#1f1f1f',
                     border: '1px solid #2a2a2a',
@@ -670,24 +580,14 @@ export default function AnalyticsPage() {
                     color: '#ffffff'
                   }}
                   formatter={(value) => [`${value}kg`, 'Weight']}
-                  labelFormatter={(value) => {
-                    const date = new Date(value);
-                    return date.toLocaleDateString('en-US', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    });
-                  }}
                 />
-                <Line
-                  type="monotone"
-                  dataKey="weight"
-                  stroke="#00A1FE"
+                <Line 
+                  type="monotone" 
+                  dataKey="weight" 
+                  stroke="#00A1FE" 
                   strokeWidth={3}
                   dot={{ fill: '#00A1FE', strokeWidth: 2, r: 4 }}
                   activeDot={{ r: 6, stroke: '#00A1FE', strokeWidth: 2 }}
-                  connectNulls={false}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -1077,7 +977,7 @@ export default function AnalyticsPage() {
                         borderRadius: '8px',
                         color: '#ffffff'
                       }}
-                      formatter={(value) => [value, 'Sessions']}
+                      formatter={(value, name) => [value, 'Sessions']}
                     />
                     <Area
                       type="monotone"

@@ -1,14 +1,16 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { profileStorage, dailyEntryStorage, calculations, foodTemplateStorage, FoodTemplate, timezoneStorage } from '@/lib/storage';
+import { profileStorage, dailyEntryStorage, calculations, foodTemplateStorage, FoodTemplate } from '@/lib/storage';
 import { CalorieEntry, ExerciseEntry } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
-import { formatDateForDisplay, formatDateLong } from '@/lib/dateUtils';
-import { PlusIcon, XMarkIcon, RectangleStackIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { formatDateForDisplay } from '@/lib/dateUtils';
+import { PlusIcon, XMarkIcon, RectangleStackIcon } from '@heroicons/react/24/outline';
+
+// TEST DATA IMPORT - Remove in production
+import { setupTestEnvironment, clearTestData } from '@/lib/testData';
 
 export default function CaloriesPage() {
-  const [currentDate, setCurrentDate] = useState(timezoneStorage.getCurrentDate());
   const [bmr, setBmr] = useState<number>(0);
   const [todayCalories, setTodayCalories] = useState<CalorieEntry[]>([]);
   const [todayExercises, setTodayExercises] = useState<ExerciseEntry[]>([]);
@@ -47,7 +49,7 @@ export default function CaloriesPage() {
     fat: ''
   });
 
-  const isToday = timezoneStorage.isToday(currentDate);
+  const today = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
     const profile = profileStorage.get();
@@ -55,13 +57,10 @@ export default function CaloriesPage() {
       setBmr(profile.bmr);
     }
 
-    const currentEntry = dailyEntryStorage.getByDate(currentDate);
-    if (currentEntry) {
-      setTodayCalories(currentEntry.calories || []);
-      setTodayExercises(currentEntry.exercises || []);
-    } else {
-      setTodayCalories([]);
-      setTodayExercises([]);
+    const todayEntry = dailyEntryStorage.getByDate(today);
+    if (todayEntry) {
+      setTodayCalories(todayEntry.calories || []);
+      setTodayExercises(todayEntry.exercises || []);
     }
 
     // Load food templates
@@ -77,7 +76,7 @@ export default function CaloriesPage() {
 
     loadHistoryData(profile?.bmr || 0);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDate]);
+  }, [today]);
 
   const loadHistoryData = (userBmr: number) => {
     const history = [];
@@ -108,16 +107,6 @@ export default function CaloriesPage() {
     }
     
     setHistoryData(history);
-  };
-
-  const navigateDay = (direction: 'prev' | 'next') => {
-    const date = new Date(currentDate);
-    if (direction === 'prev') {
-      date.setDate(date.getDate() - 1);
-    } else {
-      date.setDate(date.getDate() + 1);
-    }
-    setCurrentDate(date.toISOString().split('T')[0]);
   };
 
   const totalConsumed = todayCalories.reduce((sum, item) => sum + item.calories, 0);
@@ -159,7 +148,7 @@ export default function CaloriesPage() {
     const updatedCalories = [...todayCalories, newEntry];
     setTodayCalories(updatedCalories);
 
-    dailyEntryStorage.createOrUpdate(currentDate, { calories: updatedCalories });
+    dailyEntryStorage.createOrUpdate(today, { calories: updatedCalories });
 
     setCalorieInput({ name: '', calories: '', carbs: '', protein: '', fat: '' });
     setShowCalorieForm(false);
@@ -182,7 +171,7 @@ export default function CaloriesPage() {
     const updatedCalories = [...todayCalories, newEntry];
     setTodayCalories(updatedCalories);
 
-    dailyEntryStorage.createOrUpdate(currentDate, { calories: updatedCalories });
+    dailyEntryStorage.createOrUpdate(today, { calories: updatedCalories });
 
     setSelectedTemplate(null);
     setTemplateQuantity('1');
@@ -204,7 +193,7 @@ export default function CaloriesPage() {
     const updatedExercises = [...todayExercises, newEntry];
     setTodayExercises(updatedExercises);
 
-    dailyEntryStorage.createOrUpdate(currentDate, { exercises: updatedExercises });
+    dailyEntryStorage.createOrUpdate(today, { exercises: updatedExercises });
 
     setExerciseInput({ type: '', duration: '', caloriesBurned: '' });
     setShowExerciseForm(false);
@@ -213,50 +202,49 @@ export default function CaloriesPage() {
   const removeCalorieEntry = (id: string) => {
     const updatedCalories = todayCalories.filter(item => item.id !== id);
     setTodayCalories(updatedCalories);
-    dailyEntryStorage.createOrUpdate(currentDate, { calories: updatedCalories });
+    dailyEntryStorage.createOrUpdate(today, { calories: updatedCalories });
   };
 
   const removeExerciseEntry = (id: string) => {
     const updatedExercises = todayExercises.filter(item => item.id !== id);
     setTodayExercises(updatedExercises);
-    dailyEntryStorage.createOrUpdate(currentDate, { exercises: updatedExercises });
+    dailyEntryStorage.createOrUpdate(today, { exercises: updatedExercises });
   };
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto">
-      {/* Header with Date Navigation */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-heading mb-2">Calorie Tracker</h1>
-          <p className="text-mm-gray">Track your daily calorie consumption and expenditure</p>
-        </div>
-        <div className="flex items-center gap-6 bg-mm-dark2 rounded-lg px-6 py-4 border border-mm-gray/20">
-          <button
-            onClick={() => navigateDay('prev')}
-            className="p-3 hover:bg-mm-gray/10 rounded-lg transition-colors"
-            title="Previous day"
-          >
-            <ChevronLeftIcon className="w-8 h-8 text-mm-gray" />
-          </button>
-
-          <div className="text-center min-w-[200px]">
-            <div className="text-3xl font-heading text-mm-white">
-              {formatDateLong(new Date(currentDate + 'T12:00:00'))}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-heading mb-2">Calorie Tracker</h1>
+              <p className="text-mm-gray">Track your daily calorie consumption and expenditure</p>
             </div>
-            {isToday && (
-              <div className="text-sm text-mm-blue mt-1">Today</div>
-            )}
+            
+            {/* TEST DATA BUTTONS - Remove in production */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setupTestEnvironment();
+                  setTimeout(() => window.location.reload(), 500);
+                }}
+                className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                title="Add 5 days of test data for development"
+              >
+                📊 Add Test Data
+              </button>
+              <button
+                onClick={() => {
+                  clearTestData();
+                  setTimeout(() => window.location.reload(), 500);
+                }}
+                className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
+                title="Clear test data"
+              >
+                🗑️ Clear Test Data
+              </button>
+            </div>
           </div>
-
-          <button
-            onClick={() => navigateDay('next')}
-            className="p-3 hover:bg-mm-gray/10 rounded-lg transition-colors"
-            title="Next day"
-          >
-            <ChevronRightIcon className="w-8 h-8 text-mm-gray" />
-          </button>
         </div>
-      </div>
 
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -648,7 +636,7 @@ export default function CaloriesPage() {
                   <th className="text-left p-4 text-sm font-semibold text-mm-gray">Date</th>
                   <th className="text-left p-4 text-sm font-semibold text-mm-gray">Food Consumed</th>
                   <th className="text-left p-4 text-sm font-semibold text-mm-gray">Exercise Burnt</th>
-                  <th className="text-left p-4 text-sm font-semibold text-mm-gray">Balance</th>
+                  <th className="text-left p-4 text-sm font-semibold text-mm-gray">Deficit/Surplus</th>
                   <th className="text-left p-4 text-sm font-semibold text-mm-gray">Protein Eaten</th>
                   <th className="text-center p-4 text-sm font-semibold text-mm-gray">Protein Goal</th>
                   <th className="text-left p-4 text-sm font-semibold text-mm-gray">Fat Eaten</th>

@@ -1,7 +1,7 @@
 // MM Health Tracker - localStorage Storage Layer
 // Based on roadmap specifications
 
-import { UserProfile, DailyEntry, CalorieEntry, ExerciseEntry, InjectionEntry, InjectionTarget, MITEntry, WeeklyEntry, WeeklyObjective, NirvanaSession, NirvanaEntry, NirvanaMilestone, PersonalRecord, NirvanaProgress, SessionTypeMapping, BodyPart, BodyPartUsage, SessionCorrelation, SessionInsight, CorrelationAnalysis, WinnersBibleImage, WinnersBibleEntry } from '@/types';
+import { UserProfile, DailyEntry, CalorieEntry, ExerciseEntry, InjectionEntry, InjectionTarget, MITEntry, WeeklyEntry, WeeklyObjective, NirvanaSession, NirvanaEntry, NirvanaMilestone, PersonalRecord, NirvanaProgress, SessionTypeMapping, BodyPart, BodyPartUsage, SessionCorrelation, SessionInsight, CorrelationAnalysis } from '@/types';
 
 // Utility functions
 export function generateId(): string {
@@ -150,8 +150,6 @@ export const dailyEntryStorage = {
         weight: undefined,
         deepWorkCompleted: false,
         injections: [],
-        winnersBibleMorning: false,
-        winnersBibleNight: false,
         createdAt: new Date(),
         updatedAt: new Date(),
         ...updates
@@ -236,24 +234,10 @@ export const dailyEntryStorage = {
 
   toggleMITCompletion(date: string, mitId: string): DailyEntry {
     const entry = this.getByDate(date) || this.createOrUpdate(date, {});
-    const updatedMITs = (entry.mits || []).map(mit =>
+    const updatedMITs = (entry.mits || []).map(mit => 
       mit.id === mitId ? { ...mit, completed: !mit.completed } : mit
     );
     return this.createOrUpdate(date, { mits: updatedMITs });
-  },
-
-  // Winners Bible functions
-  markWinnersBibleViewed(date: string, timeOfDay: 'morning' | 'night'): DailyEntry {
-    const fieldName = timeOfDay === 'morning' ? 'winnersBibleMorning' : 'winnersBibleNight';
-    return this.createOrUpdate(date, { [fieldName]: true });
-  },
-
-  getWinnersBibleStatus(date: string): { morningCompleted: boolean; nightCompleted: boolean } {
-    const entry = this.getByDate(date);
-    return {
-      morningCompleted: entry?.winnersBibleMorning || false,
-      nightCompleted: entry?.winnersBibleNight || false
-    };
   }
 };
 
@@ -321,13 +305,15 @@ export const foodTemplateStorage = {
 
 export const compoundStorage = {
   get(): string[] {
-    if (typeof window === 'undefined') return [];
+    if (typeof window === 'undefined') return ['Ipamorellin', 'Retatrutide', 'Testosterone'];
     const stored = localStorage.getItem('mm-compounds');
     if (!stored) {
-      // Start with empty compounds for new users
-      return [];
+      // Set default compounds
+      const defaults = ['Ipamorellin', 'Retatrutide', 'Testosterone'];
+      this.save(defaults);
+      return defaults;
     }
-    return safeParseJSON<string[]>(stored, []);
+    return safeParseJSON<string[]>(stored, ['Ipamorellin', 'Retatrutide', 'Testosterone']);
   },
 
   save(compounds: string[]): void {
@@ -1220,7 +1206,7 @@ export const sessionCorrelationStorage = {
     }
     
     // Generate insights
-    const insights = this.generateInsights(correlations);
+    const insights = this.generateInsights(correlations, sessionsByDate);
     const recommendations = this.generateRecommendations(correlations, insights);
     
     return {
@@ -1231,7 +1217,7 @@ export const sessionCorrelationStorage = {
     };
   },
 
-  generateInsights(correlations: SessionCorrelation[]): SessionInsight[] {
+  generateInsights(correlations: SessionCorrelation[], sessionsByDate: { [date: string]: NirvanaSession[] }): SessionInsight[] {
     const insights: SessionInsight[] = [];
     
     // Find strong same-day combinations
@@ -1328,205 +1314,7 @@ export const sessionCorrelationStorage = {
     if (!hasRecoveryPattern) {
       recommendations.push(`Consider adding Yin yoga or gentle mobility work after intense handstand sessions.`);
     }
-
+    
     return recommendations.slice(0, 5); // Limit to 5 recommendations
   }
-}
-
-// Winners Bible Storage Module
-export const winnersBibleStorage = {
-  // Image management
-  getImages: (): WinnersBibleImage[] => {
-    if (typeof window === 'undefined') return [];
-    const stored = localStorage.getItem('mm-winners-bible-images');
-    if (!stored) return [];
-
-    const images = safeParseJSON<WinnersBibleImage[]>(stored, []);
-    return images.map(img => ({
-      ...img,
-      uploadedAt: new Date(img.uploadedAt)
-    })).sort((a, b) => a.order - b.order);
-  },
-
-  saveImages: (images: WinnersBibleImage[]): void => {
-    if (typeof window === 'undefined') return;
-    localStorage.setItem('mm-winners-bible-images', JSON.stringify(images));
-  },
-
-  addImage: (imageData: Omit<WinnersBibleImage, 'id' | 'order' | 'uploadedAt'>): WinnersBibleImage[] => {
-    const existingImages = winnersBibleStorage.getImages();
-
-    // Limit to 15 images
-    if (existingImages.length >= 15) {
-      throw new Error('Maximum of 15 images allowed');
-    }
-
-    const newImage: WinnersBibleImage = {
-      ...imageData,
-      id: generateId(),
-      order: existingImages.length,
-      uploadedAt: new Date()
-    };
-
-    const updatedImages = [...existingImages, newImage];
-    winnersBibleStorage.saveImages(updatedImages);
-    return updatedImages;
-  },
-
-  removeImage: (imageId: string): WinnersBibleImage[] => {
-    const existingImages = winnersBibleStorage.getImages();
-    const filteredImages = existingImages.filter(img => img.id !== imageId);
-
-    // Reorder remaining images
-    const reorderedImages = filteredImages.map((img, index) => ({
-      ...img,
-      order: index
-    }));
-
-    winnersBibleStorage.saveImages(reorderedImages);
-    return reorderedImages;
-  },
-
-  reorderImages: (imageIds: string[]): WinnersBibleImage[] => {
-    const existingImages = winnersBibleStorage.getImages();
-    const reorderedImages = imageIds.map((id, index) => {
-      const image = existingImages.find(img => img.id === id);
-      if (!image) throw new Error(`Image with id ${id} not found`);
-      return { ...image, order: index };
-    });
-
-    winnersBibleStorage.saveImages(reorderedImages);
-    return reorderedImages;
-  },
-
-  // Daily tracking
-  getEntry: (date: string): WinnersBibleEntry | null => {
-    if (typeof window === 'undefined') return null;
-    const stored = localStorage.getItem(`mm-winners-bible-${date}`);
-    if (!stored) return null;
-
-    const entry = safeParseJSON<WinnersBibleEntry | null>(stored, null);
-    if (entry) {
-      entry.createdAt = new Date(entry.createdAt);
-      entry.updatedAt = new Date(entry.updatedAt);
-      if (entry.morningViewedAt) entry.morningViewedAt = new Date(entry.morningViewedAt);
-      if (entry.nightViewedAt) entry.nightViewedAt = new Date(entry.nightViewedAt);
-    }
-    return entry;
-  },
-
-  saveEntry: (entry: WinnersBibleEntry): void => {
-    if (typeof window === 'undefined') return;
-    localStorage.setItem(`mm-winners-bible-${entry.date}`, JSON.stringify(entry));
-  },
-
-  markViewed: (date: string, timeOfDay: 'morning' | 'night'): WinnersBibleEntry => {
-    const existing = winnersBibleStorage.getEntry(date);
-    const now = new Date();
-
-    if (existing) {
-      const updated: WinnersBibleEntry = {
-        ...existing,
-        [timeOfDay === 'morning' ? 'morningViewed' : 'nightViewed']: true,
-        [timeOfDay === 'morning' ? 'morningViewedAt' : 'nightViewedAt']: now,
-        updatedAt: now
-      };
-      winnersBibleStorage.saveEntry(updated);
-      return updated;
-    } else {
-      const newEntry: WinnersBibleEntry = {
-        id: generateId(),
-        date,
-        morningViewed: timeOfDay === 'morning',
-        nightViewed: timeOfDay === 'night',
-        morningViewedAt: timeOfDay === 'morning' ? now : undefined,
-        nightViewedAt: timeOfDay === 'night' ? now : undefined,
-        createdAt: now,
-        updatedAt: now
-      };
-      winnersBibleStorage.saveEntry(newEntry);
-      return newEntry;
-    }
-  },
-
-  // Get completion status for daily tracker
-  getCompletionStatus: (date: string): { morningCompleted: boolean; nightCompleted: boolean } => {
-    const entry = winnersBibleStorage.getEntry(date);
-    return {
-      morningCompleted: entry?.morningViewed || false,
-      nightCompleted: entry?.nightViewed || false
-    };
-  }
-};
-
-// Timezone Storage Module
-export const timezoneStorage = {
-  get: () => {
-    if (typeof window === 'undefined') return null;
-    const stored = localStorage.getItem('mm-timezone');
-    if (stored) {
-      return stored;
-    }
-    // Return browser's default timezone
-    return Intl.DateTimeFormat().resolvedOptions().timeZone;
-  },
-
-  save: (timezone: string) => {
-    if (typeof window === 'undefined') return;
-    localStorage.setItem('mm-timezone', timezone);
-  },
-
-  // Get the current date in the user's timezone
-  getCurrentDate: (): string => {
-    if (typeof window === 'undefined') {
-      return new Date().toISOString().split('T')[0];
-    }
-
-    const timezone = timezoneStorage.get();
-    if (!timezone) {
-      return new Date().toISOString().split('T')[0];
-    }
-
-    // Create a date object in the user's timezone
-    const now = new Date();
-    const options: Intl.DateTimeFormatOptions = {
-      timeZone: timezone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    };
-
-    const formatter = new Intl.DateTimeFormat('en-CA', options); // en-CA gives YYYY-MM-DD format
-    return formatter.format(now);
-  },
-
-  // Check if a date is "today" in the user's timezone
-  isToday: (dateString: string): boolean => {
-    const currentDate = timezoneStorage.getCurrentDate();
-    return dateString === currentDate;
-  },
-
-  // Get a list of common timezones for the settings dropdown
-  getCommonTimezones: () => [
-    { value: 'Pacific/Auckland', label: 'Auckland (GMT+12/+13)' },
-    { value: 'Australia/Sydney', label: 'Sydney (GMT+10/+11)' },
-    { value: 'Australia/Brisbane', label: 'Brisbane (GMT+10)' },
-    { value: 'Asia/Tokyo', label: 'Tokyo (GMT+9)' },
-    { value: 'Asia/Hong_Kong', label: 'Hong Kong (GMT+8)' },
-    { value: 'Asia/Singapore', label: 'Singapore (GMT+8)' },
-    { value: 'Asia/Bangkok', label: 'Bangkok (GMT+7)' },
-    { value: 'Asia/Kolkata', label: 'Mumbai (GMT+5:30)' },
-    { value: 'Asia/Dubai', label: 'Dubai (GMT+4)' },
-    { value: 'Europe/Moscow', label: 'Moscow (GMT+3)' },
-    { value: 'Africa/Cairo', label: 'Cairo (GMT+2)' },
-    { value: 'Europe/Berlin', label: 'Berlin (GMT+1/+2)' },
-    { value: 'Europe/London', label: 'London (GMT+0/+1)' },
-    { value: 'Atlantic/Azores', label: 'Azores (GMT-1/+0)' },
-    { value: 'America/Sao_Paulo', label: 'São Paulo (GMT-3)' },
-    { value: 'America/New_York', label: 'New York (GMT-5/-4)' },
-    { value: 'America/Chicago', label: 'Chicago (GMT-6/-5)' },
-    { value: 'America/Denver', label: 'Denver (GMT-7/-6)' },
-    { value: 'America/Los_Angeles', label: 'Los Angeles (GMT-8/-7)' },
-    { value: 'Pacific/Honolulu', label: 'Honolulu (GMT-10)' }
-  ]
 };

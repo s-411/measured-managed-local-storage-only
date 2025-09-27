@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { profileStorage, dataExport, compoundStorage, foodTemplateStorage, FoodTemplate, injectionTargetStorage, nirvanaSessionTypesStorage, timezoneStorage, winnersBibleStorage } from '@/lib/storage';
-import { UserProfile, DailyTrackerSettings, InjectionTarget, WinnersBibleImage } from '@/types';
-import {
+import { profileStorage, dataExport, compoundStorage, foodTemplateStorage, FoodTemplate, injectionTargetStorage, nirvanaSessionTypesStorage } from '@/lib/storage';
+import { UserProfile, DailyTrackerSettings, InjectionTarget } from '@/types';
+import { 
   UserIcon,
   BeakerIcon,
   DocumentArrowDownIcon,
@@ -15,8 +15,7 @@ import {
   HeartIcon,
   FireIcon,
   CalendarDaysIcon,
-  SparklesIcon,
-  PhotoIcon
+  SparklesIcon
 } from '@heroicons/react/24/outline';
 
 function SettingsPageContent() {
@@ -59,10 +58,7 @@ function SettingsPageContent() {
     fat: ''
   });
   const [injectionTargets, setInjectionTargets] = useState<InjectionTarget[]>([]);
-
-  // Timezone state
-  const [userTimezone, setUserTimezone] = useState<string>('');
-
+  
   // Nirvana session types state
   const [nirvanaSessionTypes, setNirvanaSessionTypes] = useState<string[]>([]);
   const [newSessionType, setNewSessionType] = useState('');
@@ -75,10 +71,6 @@ function SettingsPageContent() {
     unit: 'mg',
     frequency: ''
   });
-
-  // Winners Bible state
-  const [winnersBibleImages, setWinnersBibleImages] = useState<WinnersBibleImage[]>([]);
-  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     const existingProfile = profileStorage.get();
@@ -122,20 +114,10 @@ function SettingsPageContent() {
     // Load injection targets from storage
     const storedInjectionTargets = injectionTargetStorage.get();
     setInjectionTargets(storedInjectionTargets);
-
-    // Load timezone from storage
-    const storedTimezone = timezoneStorage.get();
-    if (storedTimezone) {
-      setUserTimezone(storedTimezone);
-    }
-
+    
     // Load nirvana session types from storage
     const storedSessionTypes = nirvanaSessionTypesStorage.get();
     setNirvanaSessionTypes(storedSessionTypes);
-
-    // Load Winners Bible images from storage
-    const storedImages = winnersBibleStorage.getImages();
-    setWinnersBibleImages(storedImages);
   }, [isFirstTime, router]);
 
   const updateProfile = (updates: Partial<UserProfile>) => {
@@ -319,7 +301,7 @@ function SettingsPageContent() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `mm-health-data-${timezoneStorage.getCurrentDate()}.json`;
+    a.download = `mm-health-data-${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -344,74 +326,6 @@ function SettingsPageContent() {
       
       // Reload page to reset all state
       window.location.reload();
-    }
-  };
-
-  // Winners Bible functions
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
-    setUploadingImage(true);
-
-    try {
-      for (const file of Array.from(files)) {
-        // Check file type
-        if (!file.type.startsWith('image/')) {
-          alert('Please select only image files');
-          continue;
-        }
-
-        // Check file size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-          alert('Image size must be less than 5MB');
-          continue;
-        }
-
-        // Convert to base64
-        const base64Data = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const result = reader.result as string;
-            // Remove the data:image/...;base64, prefix
-            const base64 = result.split(',')[1];
-            resolve(base64);
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-
-        // Add image to storage
-        try {
-          const updatedImages = winnersBibleStorage.addImage({
-            name: file.name,
-            base64Data,
-            mimeType: file.type,
-            size: file.size
-          });
-          setWinnersBibleImages(updatedImages);
-        } catch (error) {
-          alert((error as Error).message);
-          break;
-        }
-      }
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      alert('Error uploading image. Please try again.');
-    } finally {
-      setUploadingImage(false);
-      // Clear the input
-      event.target.value = '';
-    }
-  };
-
-  const removeWinnersBibleImage = (imageId: string) => {
-    try {
-      const updatedImages = winnersBibleStorage.removeImage(imageId);
-      setWinnersBibleImages(updatedImages);
-    } catch (error) {
-      console.error('Error removing image:', error);
-      alert('Error removing image. Please try again.');
     }
   };
 
@@ -468,6 +382,7 @@ function SettingsPageContent() {
                 type="number"
                 value={profile?.bmr || ''}
                 onChange={(e) => updateProfile({ bmr: parseInt(e.target.value) || 0 })}
+                placeholder="2000"
                 className="input-mm w-full"
               />
               <a 
@@ -501,6 +416,7 @@ function SettingsPageContent() {
                 type="number"
                 value={profile?.height || ''}
                 onChange={(e) => updateProfile({ height: parseInt(e.target.value) || 0 })}
+                placeholder="175"
                 className="input-mm w-full"
               />
             </div>
@@ -513,60 +429,10 @@ function SettingsPageContent() {
                 type="number"
                 value={profile?.weight || ''}
                 onChange={(e) => updateProfile({ weight: parseInt(e.target.value) || 0 })}
+                placeholder="70"
                 className="input-mm w-full"
               />
               <p className="text-xs text-mm-gray mt-1">You can update this daily in the tracker</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Timezone Settings */}
-        <div className="card-mm p-6">
-          <div className="flex items-center mb-6">
-            <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center mr-3">
-              <CalendarDaysIcon className="w-5 h-5 text-blue-500" />
-            </div>
-            <div>
-              <h2 className="text-xl font-heading">Time Zone Settings</h2>
-              <p className="text-sm text-mm-gray">Set your local time zone for accurate daily tracking</p>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm text-mm-gray mb-2">Your Time Zone</label>
-            <select
-              value={userTimezone}
-              onChange={(e) => {
-                setUserTimezone(e.target.value);
-                timezoneStorage.save(e.target.value);
-              }}
-              className="input-mm w-full"
-            >
-              <option value="">Select your time zone...</option>
-              {timezoneStorage.getCommonTimezones().map((tz) => (
-                <option key={tz.value} value={tz.value}>
-                  {tz.label}
-                </option>
-              ))}
-            </select>
-
-            <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-              <p className="text-sm text-blue-400 font-medium mb-2">Current Time in Your Zone</p>
-              <p className="text-xs text-mm-gray">
-                {userTimezone && (
-                  <>
-                    {new Date().toLocaleString('en-US', {
-                      timeZone: userTimezone,
-                      dateStyle: 'full',
-                      timeStyle: 'medium'
-                    })}
-                  </>
-                )}
-                {!userTimezone && 'Please select a time zone to see the current time'}
-              </p>
-              <p className="text-xs text-mm-gray mt-2">
-                Days will change at midnight in your selected time zone, ensuring accurate daily tracking.
-              </p>
             </div>
           </div>
         </div>
@@ -590,6 +456,7 @@ function SettingsPageContent() {
                 type="number"
                 value={macroTargets.calories}
                 onChange={(e) => updateMacroTarget('calories', e.target.value)}
+                placeholder="2000"
                 className="input-mm w-full"
               />
             </div>
@@ -600,6 +467,7 @@ function SettingsPageContent() {
                 type="number"
                 value={macroTargets.carbs}
                 onChange={(e) => updateMacroTarget('carbs', e.target.value)}
+                placeholder="200"
                 className="input-mm w-full"
               />
             </div>
@@ -610,6 +478,7 @@ function SettingsPageContent() {
                 type="number"
                 value={macroTargets.protein}
                 onChange={(e) => updateMacroTarget('protein', e.target.value)}
+                placeholder="150"
                 className="input-mm w-full"
               />
             </div>
@@ -620,6 +489,7 @@ function SettingsPageContent() {
                 type="number"
                 value={macroTargets.fat}
                 onChange={(e) => updateMacroTarget('fat', e.target.value)}
+                placeholder="70"
                 className="input-mm w-full"
               />
             </div>
@@ -821,6 +691,7 @@ function SettingsPageContent() {
                       <input
                         type="number"
                         step="0.1"
+                        placeholder="0.5"
                         value={newTarget.doseAmount}
                         onChange={(e) => setNewTarget({ ...newTarget, doseAmount: e.target.value })}
                         className="input-mm w-full"
@@ -845,6 +716,7 @@ function SettingsPageContent() {
                         type="number"
                         min="1"
                         max="7"
+                        placeholder="3"
                         value={newTarget.frequency}
                         onChange={(e) => setNewTarget({ ...newTarget, frequency: e.target.value })}
                         className="input-mm w-full"
@@ -958,125 +830,6 @@ function SettingsPageContent() {
           <p className="text-xs text-mm-gray mt-4">
             These session types will appear as clickable options on the Nirvana tracking page
           </p>
-        </div>
-
-        {/* Winners Bible */}
-        <div className="card-mm p-6">
-          <div className="flex items-center mb-6">
-            <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center mr-3">
-              <PhotoIcon className="w-5 h-5 text-yellow-500" />
-            </div>
-            <div>
-              <h2 className="text-xl font-heading">Winners Bible</h2>
-              <p className="text-sm text-mm-gray">Upload motivational images for daily inspiration (max 15)</p>
-            </div>
-          </div>
-
-          {/* Current Images */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-mm-gray">
-                Current Images ({winnersBibleImages.length}/15)
-              </h3>
-              <span className={`text-xs px-2 py-1 rounded-full ${
-                winnersBibleImages.length >= 15
-                  ? 'bg-red-500/20 text-red-500'
-                  : 'bg-green-500/20 text-green-500'
-              }`}>
-                {winnersBibleImages.length >= 15 ? 'Limit Reached' : `${15 - winnersBibleImages.length} remaining`}
-              </span>
-            </div>
-
-            {winnersBibleImages.length === 0 ? (
-              <div className="text-center py-8 text-mm-gray">
-                <PhotoIcon className="w-12 h-12 text-mm-gray/30 mx-auto mb-3" />
-                <p>No images uploaded yet</p>
-                <p className="text-xs mt-1">Upload images to start building your Winners Bible</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {winnersBibleImages.map((image) => (
-                  <div key={image.id} className="relative group">
-                    <div className="aspect-square rounded-lg overflow-hidden bg-mm-dark2 border border-mm-gray/20">
-                      <img
-                        src={`data:${image.mimeType};base64,${image.base64Data}`}
-                        alt={image.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <button
-                      onClick={() => removeWinnersBibleImage(image.id)}
-                      className="absolute -top-2 -right-2 p-1 bg-red-500 hover:bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Remove image"
-                    >
-                      <XMarkIcon className="w-4 h-4 text-white" />
-                    </button>
-                    <div className="absolute bottom-2 left-2 right-2">
-                      <div className="bg-black/70 backdrop-blur-sm rounded px-2 py-1">
-                        <p className="text-xs text-white truncate">{image.name}</p>
-                        <p className="text-xs text-gray-300">
-                          {(image.size / 1024 / 1024).toFixed(1)}MB
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Upload Section */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-mm-gray">Upload Images</h3>
-              {winnersBibleImages.length > 0 && (
-                <a
-                  href="/winners-bible"
-                  className="text-xs text-yellow-500 hover:text-yellow-400 underline"
-                >
-                  View Winners Bible
-                </a>
-              )}
-            </div>
-
-            <div className="border-2 border-dashed border-mm-gray/30 rounded-lg p-6 text-center">
-              <input
-                type="file"
-                id="winners-bible-upload"
-                accept="image/*"
-                multiple
-                onChange={handleImageUpload}
-                disabled={uploadingImage || winnersBibleImages.length >= 15}
-                className="hidden"
-              />
-              <label
-                htmlFor="winners-bible-upload"
-                className={`cursor-pointer inline-flex flex-col items-center ${
-                  uploadingImage || winnersBibleImages.length >= 15
-                    ? 'opacity-50 cursor-not-allowed'
-                    : 'hover:text-yellow-500'
-                }`}
-              >
-                <PhotoIcon className="w-12 h-12 text-mm-gray/50 mb-3" />
-                <span className="text-sm font-medium text-mm-white mb-1">
-                  {uploadingImage ? 'Uploading...' : 'Click to upload images'}
-                </span>
-                <span className="text-xs text-mm-gray">
-                  {winnersBibleImages.length >= 15
-                    ? 'Maximum 15 images reached'
-                    : 'PNG, JPG up to 5MB each'}
-                </span>
-              </label>
-            </div>
-
-            <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-              <p className="text-sm text-yellow-400 font-medium mb-2">Daily Motivation Routine</p>
-              <p className="text-xs text-mm-gray">
-                Upload images that motivate and inspire you. View them each morning and night
-                as part of your daily routine to track on your Daily Tracker.
-              </p>
-            </div>
-          </div>
         </div>
 
         {/* Food Templates */}

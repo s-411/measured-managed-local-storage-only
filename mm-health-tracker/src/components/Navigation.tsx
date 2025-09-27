@@ -3,7 +3,6 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useAuth } from '@/lib/auth/AuthContext';
 import {
   CalendarDaysIcon,
   BeakerIcon,
@@ -11,13 +10,7 @@ import {
   Cog6ToothIcon,
   FireIcon,
   CalculatorIcon,
-  SparklesIcon,
-  ArrowRightOnRectangleIcon,
-  UserCircleIcon,
-  ChevronDownIcon,
-  Bars3Icon,
-  PhotoIcon,
-  UserIcon
+  SparklesIcon
 } from '@heroicons/react/24/outline';
 import {
   CalendarDaysIcon as CalendarDaysIconSolid,
@@ -27,9 +20,7 @@ import {
   HeartIcon as HeartIconSolid,
   FireIcon as FireIconSolid,
   CalculatorIcon as CalculatorIconSolid,
-  SparklesIcon as SparklesIconSolid,
-  PhotoIcon as PhotoIconSolid,
-  UserIcon as UserIconSolid
+  SparklesIcon as SparklesIconSolid
 } from '@heroicons/react/24/solid';
 
 interface NavItem {
@@ -61,14 +52,8 @@ const navigation: NavItem[] = [
   {
     href: '/nirvana',
     label: 'Nirvana',
-    icon: UserIcon,
-    iconSolid: UserIconSolid
-  },
-  {
-    href: '/winners-bible',
-    label: 'Winners Bible',
-    icon: PhotoIcon,
-    iconSolid: PhotoIconSolid
+    icon: SparklesIcon,
+    iconSolid: SparklesIconSolid
   },
   {
     href: '/analytics',
@@ -92,26 +77,19 @@ const navigation: NavItem[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { user, profile, signOut } = useAuth();
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
-  };
 
   return (
     <aside className="hidden md:flex md:flex-col md:w-64 bg-mm-dark border-r border-mm-gray/20 min-h-screen">
       <div className="p-6">
         {/* Logo/Brand */}
-        <div className="flex items-center justify-center mb-8">
-          <img
-            src="/favicon.png"
-            alt="MM Health Tracker"
-            className="w-10 h-10"
-          />
+        <div className="flex items-center space-x-3 mb-8">
+          <div className="gradient-icon gradient-activities w-10 h-10">
+            <HeartIconSolid className="w-5 h-5 text-black" />
+          </div>
+          <div>
+            <h1 className="text-xl font-heading text-mm-blue">MM Health</h1>
+            <p className="text-xs text-mm-gray">Tracker</p>
+          </div>
         </div>
 
         {/* Navigation */}
@@ -136,34 +114,11 @@ export function Sidebar() {
 
       {/* Bottom section */}
       <div className="mt-auto p-6 border-t border-mm-gray/20">
-        {/* User Info */}
-        <div className="mb-4">
-          <div className="flex items-center space-x-3 mb-3">
-            <UserCircleIcon className="w-8 h-8 text-mm-blue" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-mm-white truncate">
-                {profile?.display_name || user?.email?.split('@')[0] || 'User'}
-              </p>
-              <p className="text-xs text-mm-gray truncate">
-                {user?.email}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={handleSignOut}
-            className="flex items-center space-x-2 w-full px-3 py-2 text-sm text-mm-gray hover:text-mm-white hover:bg-mm-dark2/50 rounded-lg transition-colors"
-          >
-            <ArrowRightOnRectangleIcon className="w-4 h-4" />
-            <span>Sign Out</span>
-          </button>
-        </div>
-
-        {/* Version Info */}
         <div className="text-center">
-          <p className="text-xs text-mm-gray mb-2">Phase 0.3 • Auth</p>
+          <p className="text-xs text-mm-gray mb-2">Phase 0.2</p>
           <div className="flex items-center justify-center space-x-1">
             <div className="w-2 h-2 bg-mm-blue rounded-full"></div>
-            <div className="w-2 h-2 bg-mm-blue rounded-full"></div>
+            <div className="w-2 h-2 bg-mm-gray/30 rounded-full"></div>
             <div className="w-2 h-2 bg-mm-gray/30 rounded-full"></div>
             <div className="w-2 h-2 bg-mm-gray/30 rounded-full"></div>
           </div>
@@ -199,179 +154,14 @@ export function MobileNavigation() {
   );
 }
 
-export function TopHeader() {
-  const pathname = usePathname();
-  const { user, profile, signOut } = useAuth();
-  const [showProfileDropdown, setShowProfileDropdown] = React.useState(false);
-  const [showMobileMenu, setShowMobileMenu] = React.useState(false);
-  const dropdownRef = React.useRef<HTMLDivElement>(null);
-  const mobileMenuRef = React.useRef<HTMLDivElement>(null);
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
-  };
-
-  // Close dropdowns when clicking outside
-  React.useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowProfileDropdown(false);
-      }
-      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
-        setShowMobileMenu(false);
-      }
-    }
-
-    if (showProfileDropdown || showMobileMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [showProfileDropdown, showMobileMenu]);
-
-  // Main navigation items with full text
-  const mainNavigation = navigation.slice(0, 6); // Daily, Calories, Injections, Nirvana, Winners Bible, Analytics
-  // Icon-only navigation items
-  const iconNavigation = navigation.slice(6); // Calculator, Settings
-
-  return (
-    <header className="sticky top-0 z-50 bg-mm-dark border-b border-mm-gray/20 px-6 py-4">
-      <div className="flex items-center justify-between">
-        {/* Logo/Brand */}
-        <div className="flex items-center">
-          <img
-            src="/favicon.png"
-            alt="MM Health Tracker"
-            className="w-10 h-10"
-          />
-        </div>
-
-        {/* Main Navigation */}
-        <nav className="hidden md:flex items-center space-x-1">
-          {mainNavigation.map((item) => {
-            const isActive = pathname === item.href;
-            const Icon = isActive ? item.iconSolid : item.icon;
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`header-nav-item ${isActive ? 'active' : ''}`}
-              >
-                <Icon className="w-5 h-5" />
-                <span className="font-medium">{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* Right Side: Icon Items + Profile */}
-        <div className="flex items-center space-x-2">
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setShowMobileMenu(!showMobileMenu)}
-            className="md:hidden p-2 rounded-lg hover:bg-mm-dark2/50 transition-colors"
-          >
-            <Bars3Icon className="w-6 h-6 text-mm-gray" />
-          </button>
-
-          {/* Icon-only navigation */}
-          <div className="hidden md:flex items-center space-x-1">
-            {iconNavigation.map((item) => {
-              const isActive = pathname === item.href;
-              const Icon = isActive ? item.iconSolid : item.icon;
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`header-nav-item-icon ${isActive ? 'active' : ''}`}
-                  title={item.label}
-                >
-                  <Icon className="w-5 h-5" />
-                </Link>
-              );
-            })}
-          </div>
-
-          {/* Profile Dropdown */}
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-              className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-mm-dark2/50 transition-colors"
-            >
-              <UserCircleIcon className="w-6 h-6 text-mm-blue" />
-              <ChevronDownIcon className="w-4 h-4 text-mm-gray" />
-            </button>
-
-            {showProfileDropdown && (
-              <div className="absolute right-0 mt-2 w-64 bg-mm-dark2 border border-mm-gray/20 rounded-lg shadow-lg z-50">
-                <div className="p-4 border-b border-mm-gray/20">
-                  <div className="flex items-center space-x-3">
-                    <UserCircleIcon className="w-8 h-8 text-mm-blue" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-mm-white truncate">
-                        {profile?.display_name || user?.email?.split('@')[0] || 'User'}
-                      </p>
-                      <p className="text-xs text-mm-gray truncate">
-                        {user?.email}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-2">
-                  <button
-                    onClick={handleSignOut}
-                    className="flex items-center space-x-2 w-full px-3 py-2 text-sm text-mm-gray hover:text-mm-white hover:bg-mm-dark/50 rounded-lg transition-colors"
-                  >
-                    <ArrowRightOnRectangleIcon className="w-4 h-4" />
-                    <span>Sign Out</span>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Menu Dropdown */}
-      {showMobileMenu && (
-        <div className="md:hidden bg-mm-dark2 border-b border-mm-gray/20" ref={mobileMenuRef}>
-          <div className="px-6 py-4 space-y-2">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href;
-              const Icon = isActive ? item.iconSolid : item.icon;
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`header-nav-item ${isActive ? 'active' : ''}`}
-                  onClick={() => setShowMobileMenu(false)}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span className="font-medium">{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </header>
-  );
-}
-
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-mm-dark">
-      {/* Top Header */}
-      <TopHeader />
+    <div className="flex h-screen bg-mm-dark">
+      {/* Desktop Sidebar */}
+      <Sidebar />
 
       {/* Main Content */}
-      <main className="pb-16 md:pb-0">
+      <main className="flex-1 overflow-auto pb-16 md:pb-0">
         {children}
       </main>
 

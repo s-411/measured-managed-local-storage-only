@@ -21,8 +21,6 @@ npm run lint         # Run ESLint
 - **Node.js**: >=18.0.0 required
 - **Core**: Next.js 15.5.3, React 19.1.0, TypeScript 5, Tailwind CSS 4
 - **UI**: Heroicons, Recharts for data visualization
-- **Backend**: Supabase for authentication and potential future data storage
-- **Utilities**: UUID for ID generation
 - **No test framework**: Currently no testing setup configured
 
 ## Architecture Overview
@@ -52,16 +50,13 @@ The application uses **localStorage-based persistence** with a sophisticated sto
 - All pages use consistent card-based layouts with `card-mm` class
 
 **Page Hierarchy**:
-- `/daily` - Primary dashboard with 8-card grid (4x2 layout) for comprehensive daily health tracking
+- `/daily` - Primary dashboard for daily health tracking
 - `/nirvana` - Specialized gymnastics/mobility session tracking with progress milestones
-- `/analytics` - Comprehensive data visualization with weight tracking, time series, and correlation analysis
+- `/analytics` - Comprehensive data visualization with 6 distinct analysis types
 - `/calculator` - BMR and peptide calculators
 - `/calories` - Calorie and macro tracking
 - `/injections` - Injectable compound logging
-- `/winners-bible` - Daily motivation image viewing with morning/evening completion tracking
-- `/settings` - Configuration management and data export
-- `/bmr-calculator` - Standalone BMR calculation tool
-- `/profile` - User profile management
+- `/settings` - Configuration management
 
 ### Type System Architecture
 
@@ -89,13 +84,12 @@ The application uses **localStorage-based persistence** with a sophisticated sto
 ### Analytics Architecture
 
 **Multi-layered Analytics System**:
-1. **Weight Progress Tracking** - Time-based graphs with fixed 75-90kg scale, reference lines at 80kg/85kg
-2. **Daily Metrics Calculation** - BMR-based calorie balancing
-3. **Nirvana Training Analytics** - 6 visualization types (streaks, frequency, correlations)
-4. **Body Part Heat Mapping** - Visual training frequency analysis
-5. **Session Correlation Analysis** - AI pattern recognition with confidence scoring
+1. **Daily Metrics Calculation** - BMR-based calorie balancing
+2. **Nirvana Training Analytics** - 6 visualization types (streaks, frequency, correlations)
+3. **Body Part Heat Mapping** - Visual training frequency analysis
+4. **Session Correlation Analysis** - AI pattern recognition with confidence scoring
 
-**Data Processing Pattern**: Analytics load data reactively using multiple storage modules and compute derived metrics client-side with statistical confidence measures. Weight graphs use proper time-based scaling with Recharts `XAxis` configured for temporal data.
+**Data Processing Pattern**: Analytics load data reactively using multiple storage modules and compute derived metrics client-side with statistical confidence measures.
 
 ## Key Implementation Patterns
 
@@ -103,8 +97,6 @@ The application uses **localStorage-based persistence** with a sophisticated sto
 - All dates stored as `YYYY-MM-DD` strings for localStorage keys
 - Consistent `+ 'T12:00:00'` suffix for timezone-safe Date object creation
 - Week calculations use Monday-based weeks with `getWeekStartDate()` utility
-- **Timezone Support**: `timezoneStorage` manages user timezone preferences with `getCurrentDate()` for accurate daily tracking
-- Date navigation in components automatically accounts for user's configured timezone
 
 ### State Management
 - **React Context + useReducer**: `AppProvider` with centralized reducer for global state management
@@ -116,17 +108,6 @@ The application uses **localStorage-based persistence** with a sophisticated sto
 - Page components handle their own data loading and storage operations
 - Shared utilities in `/lib` for calculations and date operations
 - Consistent modal patterns for data entry (see Nirvana personal records)
-
-### Daily Tracker Grid System
-The daily tracker uses an 8-card grid system (4x2 layout) for comprehensive daily health monitoring:
-- **Grid Layout**: `grid-cols-1 md:grid-cols-2 lg:grid-cols-4` for responsive 4x2 card arrangement
-- **Auto-completion**: Cards automatically mark as complete when data is logged on respective pages
-- **Progress Calculation**: Daily progress computed as completed cards out of 8 total metrics
-- **Card Types**: Weight, Deep Work, Food, Exercise, MITs, Winners Bible, Injections, Nirvana sessions
-- **Data Sources**:
-  - Most metrics from `dailyEntry` object (calories, exercise, weight, injections)
-  - Nirvana sessions from dedicated `nirvanaSessionStorage`
-  - Winners Bible from dual morning/evening completion tracking
 
 ### Error Boundaries
 - `safeParseJSON()` utility with fallbacks for corrupted localStorage
@@ -155,16 +136,6 @@ New metrics should integrate with the analytics system:
 3. Create visualization components following Recharts patterns
 4. Maintain consistent color coding and responsive design
 
-### Daily Tracker Integration
-When adding new tracking cards to the daily dashboard:
-1. Add completion status to `completionStatus` object in `useMemo` calculations
-2. Update grid layout if expanding beyond 8 cards (current 4x2 layout)
-3. Ensure auto-completion logic checks appropriate data sources:
-   - `dailyEntry.{field}.length > 0` for daily entry arrays
-   - Custom storage getters for specialized systems (e.g., Nirvana sessions)
-4. Use consistent card structure with completion icons and navigation links
-5. Update progress calculation to reflect new total metric count
-
 ### Nirvana System Extensions
 The Nirvana training system is highly extensible:
 - Session types are configurable via `nirvanaSessionTypesStorage`
@@ -173,4 +144,4 @@ The Nirvana training system is highly extensible:
 - Progress milestones follow ordered, categorized structure
 
 ## Development Port Configuration
-The application runs on port 3003 in the current development setup. Use `npm run dev` for default port 3000, or `npm run dev -- -p 3003` to match the existing development environment configuration. The specific port may vary based on developer preference and environment setup.
+The application commonly runs on port 3001 (not default 3000) based on development patterns observed in the codebase. Use `npm run dev -- -p 3001` for consistency with existing development workflow.

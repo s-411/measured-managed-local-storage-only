@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { nirvanaSessionStorage, nirvanaSessionTypesStorage, nirvanaProgressStorage, timezoneStorage } from '@/lib/storage';
+import React, { useState, useEffect } from 'react';
+import { nirvanaSessionStorage, nirvanaSessionTypesStorage, nirvanaProgressStorage } from '@/lib/storage';
 import { NirvanaSession, NirvanaMilestone, PersonalRecord } from '@/types';
 import { formatDateLong } from '@/lib/dateUtils';
 import { 
@@ -23,7 +23,7 @@ import {
 } from '@heroicons/react/24/solid';
 
 export default function NirvanaPage() {
-  const [currentDate, setCurrentDate] = useState(timezoneStorage.getCurrentDate());
+  const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
   const [sessionTypes, setSessionTypes] = useState<string[]>([]);
   const [todaySessions, setTodaySessions] = useState<NirvanaSession[]>([]);
   const [weeklyData, setWeeklyData] = useState<{ [key: string]: NirvanaSession[] }>({});
@@ -31,33 +31,33 @@ export default function NirvanaPage() {
   const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([]);
   const [showRecordModal, setShowRecordModal] = useState<string | null>(null);
   const [recordValue, setRecordValue] = useState('');
-
-  const loadProgress = useCallback(() => {
+  
+  useEffect(() => {
+    // Load session types
+    const types = nirvanaSessionTypesStorage.get();
+    setSessionTypes(types);
+    
+    // Load today's sessions
+    loadSessions();
+    
+    // Load weekly data
+    loadWeeklyData();
+    
+    // Load progress data
+    loadProgress();
+  }, [currentDate]);
+  
+  const loadProgress = () => {
     const progress = nirvanaProgressStorage.get();
     setMilestones(progress.milestones);
     setPersonalRecords(progress.personalRecords);
-  }, []);
-
-  const loadSessions = useCallback(() => {
+  };
+  
+  const loadSessions = () => {
     const entry = nirvanaSessionStorage.getByDate(currentDate);
     setTodaySessions(entry?.sessions || []);
-  }, [currentDate]);
-
-  const loadWeeklyData = useCallback(() => {
-    const weekStart = getWeekStart(currentDate);
-    const weekData: { [date: string]: NirvanaSession[] } = {};
-
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(weekStart + 'T12:00:00');
-      date.setDate(date.getDate() + i);
-      const dateString = date.toISOString().split('T')[0];
-      const entry = nirvanaSessionStorage.getByDate(dateString);
-      weekData[dateString] = entry?.sessions || [];
-    }
-
-    setWeeklyData(weekData);
-  }, [currentDate]);
-
+  };
+  
   // Get the start of the week (Monday) for a given date
   const getWeekStart = (date: string) => {
     const d = new Date(date + 'T12:00:00');
@@ -66,40 +66,36 @@ export default function NirvanaPage() {
     const monday = new Date(d.setDate(diff));
     return monday.toISOString().split('T')[0];
   };
-
-  useEffect(() => {
-    // Load session types
-    const types = nirvanaSessionTypesStorage.get();
-    setSessionTypes(types);
-
-    // Load today's sessions
-    loadSessions();
-
-    // Load weekly data
-    loadWeeklyData();
-
-    // Load progress data
-    loadProgress();
-  }, [currentDate, loadSessions, loadWeeklyData, loadProgress]);
   
   // Get all days in the current week (full week regardless of selected date)
-  // const getCurrentWeekDays = () => {
-  //   const weekStart = getWeekStart(currentDate);
-  //   const start = new Date(weekStart + 'T12:00:00');
-  //
-  //   const days: string[] = [];
-  //
-  //   // Always get all 7 days of the week
-  //   for (let i = 0; i < 7; i++) {
-  //     const day = new Date(start);
-  //     day.setDate(start.getDate() + i);
-  //     const dayString = day.toISOString().split('T')[0];
-  //     days.push(dayString);
-  //   }
-  //
-  //   return days;
-  // };
+  const getCurrentWeekDays = () => {
+    const weekStart = getWeekStart(currentDate);
+    const start = new Date(weekStart + 'T12:00:00');
+    
+    const days: string[] = [];
+    
+    // Always get all 7 days of the week
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(start);
+      day.setDate(start.getDate() + i);
+      const dayString = day.toISOString().split('T')[0];
+      days.push(dayString);
+    }
+    
+    return days;
+  };
   
+  const loadWeeklyData = () => {
+    const weekDays = getCurrentWeekDays();
+    const data: { [key: string]: NirvanaSession[] } = {};
+    
+    weekDays.forEach(date => {
+      const entry = nirvanaSessionStorage.getByDate(date);
+      data[date] = entry?.sessions || [];
+    });
+    
+    setWeeklyData(data);
+  };
   
   const navigateDay = (direction: 'prev' | 'next') => {
     const date = new Date(currentDate);
@@ -111,7 +107,7 @@ export default function NirvanaPage() {
     setCurrentDate(date.toISOString().split('T')[0]);
   };
   
-  const isToday = timezoneStorage.isToday(currentDate);
+  const isToday = currentDate === new Date().toISOString().split('T')[0];
   
   const addSession = (sessionType: string) => {
     nirvanaSessionStorage.addSession(currentDate, sessionType);
@@ -142,16 +138,16 @@ export default function NirvanaPage() {
   };
   
   // Get day name from date string
-  // const getDayName = (dateString: string) => {
-  //   const date = new Date(dateString + 'T12:00:00');
-  //   return date.toLocaleDateString('en-US', { weekday: 'long' });
-  // };
-
-  // Get short day name from date string
-  // const getShortDayName = (dateString: string) => {
-  //   const date = new Date(dateString + 'T12:00:00');
-  //   return date.toLocaleDateString('en-US', { weekday: 'short' });
-  // };
+  const getDayName = (dateString: string) => {
+    const date = new Date(dateString + 'T12:00:00');
+    return date.toLocaleDateString('en-US', { weekday: 'long' });
+  };
+  
+  // Get short day name from date string  
+  const getShortDayName = (dateString: string) => {
+    const date = new Date(dateString + 'T12:00:00');
+    return date.toLocaleDateString('en-US', { weekday: 'short' });
+  };
   
   // Calculate weekly session counts by type
   const getWeeklySessionCounts = () => {
@@ -396,7 +392,7 @@ export default function NirvanaPage() {
                 dayDate.setDate(dayDate.getDate() + index);
                 const dayString = dayDate.toISOString().split('T')[0];
                 const daySessions = weeklyData[dayString] || [];
-                const today = timezoneStorage.getCurrentDate();
+                const today = new Date().toISOString().split('T')[0];
                 const isCurrentDay = dayString === currentDate;
                 const isToday = dayString === today;
                 const isUpcoming = dayDate > new Date(today + 'T12:00:00');

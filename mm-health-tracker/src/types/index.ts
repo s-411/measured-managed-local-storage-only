@@ -21,8 +21,6 @@ export interface DailyEntry {
   injections: InjectionEntry[];
   customMetrics?: CustomMetricEntry[];  // Custom daily metrics
   mits?: MITEntry[];     // Most Important Tasks for tomorrow
-  winnersBibleMorning?: boolean;  // Morning Winners Bible viewing
-  winnersBibleNight?: boolean;    // Night Winners Bible viewing
   createdAt: Date;
   updatedAt: Date;
 }
@@ -99,28 +97,6 @@ export interface CustomMetricDefinition {
   min?: number;         // For scale types
   max?: number;         // For scale types
   options?: string[];   // For select types (future)
-}
-
-// Winners Bible interfaces
-export interface WinnersBibleImage {
-  id: string;
-  name: string;
-  base64Data: string;   // Base64 encoded image data
-  mimeType: string;     // image/jpeg, image/png, etc.
-  size: number;         // File size in bytes
-  order: number;        // Display order
-  uploadedAt: Date;
-}
-
-export interface WinnersBibleEntry {
-  id: string;
-  date: string;         // YYYY-MM-DD format
-  morningViewed: boolean;
-  nightViewed: boolean;
-  morningViewedAt?: Date;
-  nightViewedAt?: Date;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 export interface CustomMetricEntry {

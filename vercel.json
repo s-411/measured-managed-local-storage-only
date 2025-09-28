@@ -1,7 +1,8 @@
 {
-  "buildCommand": "cd mm-health-tracker && npm run build",
-  "outputDirectory": "mm-health-tracker/.next",
-  "installCommand": "cd mm-health-tracker && npm install",
-  "devCommand": "cd mm-health-tracker && npm run dev",
-  "framework": "nextjs"
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "installCommand": "npm install",
+  "devCommand": "npm run dev",
+  "framework": "nextjs",
+  "rootDirectory": "mm-health-tracker"
 }

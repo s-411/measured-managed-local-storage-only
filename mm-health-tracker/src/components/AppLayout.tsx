@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { ProtectedRoute } from '@/lib/auth/ProtectedRoute';
 import { AppShell } from '@/components/Navigation';
 
 interface AppLayoutProps {
@@ -10,10 +9,8 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   return (
-    <ProtectedRoute>
-      <AppShell>
-        {children}
-      </AppShell>
-    </ProtectedRoute>
+    <AppShell>
+      {children}
+    </AppShell>
   );
 }

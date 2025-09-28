@@ -4,124 +4,144 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This repository contains the **MM Design System** and project planning for Measured Managed applications. The main components are:
-
-- **Design System** (`design-system-cpn/`) - Complete styling package extracted from MM v2, built with Tailwind CSS 4.0
-- **Project Planning** (`Project Overview/`, `mm-health-tracker-prd.md`) - Development roadmaps and implementation guides for new health tracking application
-- **Example Layouts** - Reference implementations and UI patterns
+MM Health Tracker is a comprehensive health and fitness tracking application built with Next.js 15.5.3, React 19, and TypeScript. The application focuses on detailed health metrics including calorie tracking, exercise logging, injection management, and specialized Nirvana Life training (gymnastics/mobility) tracking with advanced analytics.
 
 ## Common Commands
 
 ### Development
 ```bash
-npm run dev          # Start Next.js development server
-npm run build        # Build the application
+npm run dev          # Start development server (default port 3000)
+npm run dev -- -p 3001  # Start development server on specific port (commonly used)
+npm run build        # Build production application
 npm run start        # Start production server
 npm run lint         # Run ESLint
-npm run type-check   # Run TypeScript type checking
 ```
 
 ### Dependencies
 - **Node.js**: >=18.0.0 required
-- **Core**: Tailwind CSS 4.1, PostCSS, Next.js >=14.0.0
-- **Peer Dependencies**: React >=18.0.0, React DOM >=18.0.0
+- **Core**: Next.js 15.5.3, React 19.1.0, TypeScript 5, Tailwind CSS 4
+- **UI**: Heroicons, Recharts for data visualization
+- **No test framework**: Currently no testing setup configured
 
-## Architecture
+## Architecture Overview
 
-### Directory Structure
-```
-design-system-cpn/
-├── styles/globals.css           # Complete CSS system with Tailwind 4.0 theme
-├── fonts/                       # Custom fonts (National2Condensed, ESKlarheit)
-├── config/                      # Design tokens and color definitions
-│   ├── colors.json             # Color palette reference
-│   └── design-tokens.json      # Complete design specifications
-└── examples/                    # React component examples
-    ├── button-examples.tsx     # Button patterns and variations
-    ├── card-examples.tsx       # Card layouts and components
-    ├── form-examples.tsx       # Form inputs and validation
-    └── layout-examples.tsx     # Navigation and layout structures
-```
+### Data Storage Strategy
+The application uses **localStorage-based persistence** with a sophisticated storage layer (`src/lib/storage.ts`) containing 11 specialized storage modules:
 
-### Design System Architecture
+- `profileStorage` - User profile and BMR calculations
+- `dailyEntryStorage` - Daily health metrics (calories, exercise, weight)
+- `nirvanaSessionStorage` - Nirvana Life training sessions (per-date)
+- `nirvanaProgressStorage` - Progress milestones and personal records
+- `bodyPartMappingStorage` - Session-to-body-part correlations
+- `sessionCorrelationStorage` - AI-powered training pattern analysis
+- `injectionTargetStorage` - Injectable compound management
+- `weeklyEntryStorage` - Weekly objectives and reviews
+- Plus food templates, compounds, and custom metrics storage
 
-**Theme Configuration**: Uses Tailwind CSS 4.0's `@theme` directive in `styles/globals.css` to define custom properties:
-- **Primary Brand Color**: `--color-mm-blue: #00A1FE` (single source of truth - change here updates entire system)
-- **Supporting Colors**: mm-dark (#1f1f1f), mm-dark2 (#2a2a2a), mm-white (#ffffff), mm-gray (#ababab)
-- **Custom Fonts**: National2Condensed (headings), ESKlarheit (body text)
-- **Border Radius**: `--radius-mm: 100px` (signature button style), plus card/input variants
-- **Transition Timing**: Fast (0.2s), medium (0.3s), slow (0.5s) tokens
+**Critical Pattern**: All storage modules handle date serialization/deserialization and provide SSR-safe fallbacks with `typeof window === 'undefined'` checks.
 
-**Component System**: Built around reusable CSS classes:
-- `.btn-mm` - Primary blue buttons with 100px border radius
-- `.btn-secondary` - Outlined secondary buttons
-- `.input-mm` - Dark theme form inputs with blue focus states
-- `.card-mm` - Standard card component with dark theme styling
-- `.glass-card` - Semi-transparent cards with backdrop blur
-- `.rating-tile` - Signature hotness rating grid system
+**Calculation Engine**: Embedded `calculations` module within storage.ts provides BMR-based daily metrics with calorie balance computation (`bmr - consumed + burned`).
 
-**Color System**: Uses CSS `color-mix()` for dynamic transparency effects and modern color manipulation without opacity utilities.
+### Application Structure
 
-**Typography**: Automatic font assignment via CSS:
-- Headings (h1-h6) automatically use National2Condensed
-- Body text automatically uses ESKlarheit
-- `.font-heading` and `.font-body` classes available for manual override
+**Layout Architecture**:
+- `AppProvider` (Context) → `AppShell` (Navigation) → Page Content
+- `AppShell` provides responsive sidebar (desktop) + bottom navigation (mobile)
+- All pages use consistent card-based layouts with `card-mm` class
 
-**Responsive Design**: Mobile-first approach with specific patterns:
-- Desktop sidebar → Mobile bottom navigation
-- Desktop tables → Mobile card layouts
-- Breakpoints: mobile (max 768px), tablet (769-1024px), desktop (1025px+)
+**Page Hierarchy**:
+- `/daily` - Primary dashboard for daily health tracking
+- `/nirvana` - Specialized gymnastics/mobility session tracking with progress milestones
+- `/analytics` - Comprehensive data visualization with 6 distinct analysis types
+- `/calculator` - BMR and peptide calculators
+- `/calories` - Calorie and macro tracking
+- `/injections` - Injectable compound logging
+- `/settings` - Configuration management
 
-### Key Design Patterns
+### Type System Architecture
 
-**Signature Elements**:
-- 100px border radius buttons for distinctive blue branding
-- Dark theme (#1f1f1f) with strategic blue accent (#00A1FE)
-- Glass morphism effects using `color-mix()` and `backdrop-filter`
-- Two-row rating grid system (5.0-7.5, 8.0-10.0)
+**Core Data Models** (`src/types/index.ts`):
+- `DailyEntry` - Central daily health record with date-keyed structure
+- `NirvanaEntry` - Specialized training session data with body part correlations
+- `UserProfile` - BMR-centric user configuration
+- `CorrelationAnalysis` - AI-generated training insights and recommendations
 
-**Layout Patterns**:
-- Flex-based app shell with sidebar and main content
-- Card-grid layouts for responsive content display
-- Mobile-bottom navigation with icon + label pattern
+**Key Pattern**: All data interfaces include `createdAt`/`updatedAt` timestamps and use string date keys (`YYYY-MM-DD` format) for consistent indexing.
 
-### Integration Guidelines
+### Styling System
 
-When implementing this design system:
-1. Copy font files to `/public/fonts/`
-2. Import `styles/globals.css` in main layout
-3. Use `bg-mm-dark text-mm-white` on root layout
-4. Reference `/examples/` for component implementation patterns
-5. Use design tokens from `/config/design-tokens.json` for specifications
+**Tailwind CSS 4.0 Theme** (`src/app/globals.css`):
+- **Brand Colors**: `--color-mm-blue: #00A1FE` (primary), dark theme variants
+- **Typography**: National2Condensed (headings), ESKlarheit (body)
+- **Component Classes**: `.btn-mm`, `.card-mm`, `.input-mm` for consistency
+- **Border Radius**: `--radius-mm: 100px` for signature button styling
 
-### Color System Management
+**Design Patterns**:
+- Dark theme default (`bg-mm-dark text-mm-white`)
+- Mobile-first responsive grid layouts
+- Color-coded analytics (purple for Nirvana, blue for core metrics)
 
-**Primary Brand Color**: The entire design system's blue theme is controlled by a single CSS custom property:
-```css
---color-mm-blue: #00A1FE;
-```
-- Changing this value in `styles/globals.css` automatically updates all buttons, focus states, hover effects, and brand accents
-- All components reference `var(--color-mm-blue)` ensuring consistent theming
-- Provides flexibility to adjust the blue shade system-wide from one location
+### Analytics Architecture
 
-### Package Information
+**Multi-layered Analytics System**:
+1. **Daily Metrics Calculation** - BMR-based calorie balancing
+2. **Nirvana Training Analytics** - 6 visualization types (streaks, frequency, correlations)
+3. **Body Part Heat Mapping** - Visual training frequency analysis
+4. **Session Correlation Analysis** - AI pattern recognition with confidence scoring
 
-- **Name**: mm-design-system
-- **Type**: Private package for Measured Managed applications
-- **License**: MIT
-- **Main Entry**: styles/globals.css
+**Data Processing Pattern**: Analytics load data reactively using multiple storage modules and compute derived metrics client-side with statistical confidence measures.
 
-## Development Context
+## Key Implementation Patterns
 
-### Project Planning Files
-- `mm-health-tracker-prd.md` - Phased development plan for health tracking application
-- `Project Overview/NEW_PROJECT_ROADMAP.md` - Step-by-step implementation roadmap with commands
-- `Project Overview/CODE_TEMPLATES_AND_PATTERNS.md` - Reusable code patterns and templates
-- `Project Overview/PROJECT_ANALYSIS_AND_REPLICATION_GUIDE.md` - Analysis of existing implementation
+### Date Handling
+- All dates stored as `YYYY-MM-DD` strings for localStorage keys
+- Consistent `+ 'T12:00:00'` suffix for timezone-safe Date object creation
+- Week calculations use Monday-based weeks with `getWeekStartDate()` utility
 
-### Design System Usage
-When building new applications with this design system:
-1. The design system is **pre-existing and complete** - do not modify core styles
-2. All new development should replicate existing design patterns exactly
-3. Use provided examples and screenshots as reference for exact implementation
-4. Focus on **incremental development** - build one page at a time to completion
+### State Management
+- **React Context + useReducer**: `AppProvider` with centralized reducer for global state management
+- **Specialized Hooks**: `useProfile()`, `useDailyEntry()`, `useHealthMetrics()` for domain-specific state
+- **Hybrid Architecture**: Global context for daily entries, localStorage-direct for specialized systems (Nirvana)
+- **Real-time Sync**: Automatic localStorage persistence with useEffect watchers
+
+### Component Architecture
+- Page components handle their own data loading and storage operations
+- Shared utilities in `/lib` for calculations and date operations
+- Consistent modal patterns for data entry (see Nirvana personal records)
+
+### Error Boundaries
+- `safeParseJSON()` utility with fallbacks for corrupted localStorage
+- SSR-safe storage access patterns
+- Graceful degradation for missing data
+
+## Critical Development Notes
+
+### Storage Module Pattern
+When adding new data types, follow the established storage module pattern:
+1. Define TypeScript interfaces in `src/types/index.ts`
+2. Create storage module with `get()`, `save()`, CRUD operations
+3. Handle date serialization and SSR safety (`typeof window === 'undefined'`)
+4. Add to main storage imports where needed
+5. **Dual-Architecture**: Use Context for daily entries, direct localStorage for specialized features
+
+### Context vs Direct Storage Decision Tree
+- **Use Context**: Daily health metrics (calories, exercise, weight) that need global state
+- **Use Direct Storage**: Specialized features (Nirvana, analytics) with complex data structures
+- **Integration Point**: Analytics page imports from both systems for unified reporting
+
+### Analytics Integration
+New metrics should integrate with the analytics system:
+1. Add data processing in `loadAnalyticsData()`
+2. Extend `AnalyticsData` interface
+3. Create visualization components following Recharts patterns
+4. Maintain consistent color coding and responsive design
+
+### Nirvana System Extensions
+The Nirvana training system is highly extensible:
+- Session types are configurable via `nirvanaSessionTypesStorage`
+- Body part mappings support intensity levels and position coordinates
+- Correlation analysis provides AI-powered training insights
+- Progress milestones follow ordered, categorized structure
+
+## Development Port Configuration
+The application commonly runs on port 3001 (not default 3000) based on development patterns observed in the codebase. Use `npm run dev -- -p 3001` for consistency with existing development workflow.

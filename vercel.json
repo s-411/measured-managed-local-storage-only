@@ -1,9 +1,0 @@
-{
-  "version": 2,
-  "builds": [
-    {
-      "src": "mm-health-tracker/package.json",
-      "use": "@vercel/next"
-    }
-  ]
-}
